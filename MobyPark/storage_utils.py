@@ -25,7 +25,7 @@ def write_csv(filename, data):
         writer = csv.writer(file)
         for row in data:
             writer.writerow(row)
-
+#adasdasd
 def load_text(filename):
     try:
         with open(filename, 'r') as file:
