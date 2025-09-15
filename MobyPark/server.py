@@ -3,8 +3,8 @@ import hashlib
 import uuid
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from storage_utils import load_json, save_data, save_user_data, load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, load_payment_data, save_payment_data
-from session_manager import add_session, remove_session, get_session
+from storage_utils import load_json, save_data, save_user_data, load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
+from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
 import session_calculator as sc
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -23,7 +23,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Username already taken")
                     return
-            users.add({
+            users.append({
                 'username': username,
                 'password': hashed_password,
                 'name': name
@@ -48,20 +48,21 @@ class RequestHandler(BaseHTTPRequestHandler):
             hashed_password = hashlib.md5(password.encode()).hexdigest()
             users = load_json('data/users.json')
             for user in users:
-                if user.get("username") == username and user.get("password") == hashed_password:
-                    token = str(uuid.uuid4())
-                    add_session(token, user)
-                    self.send_response(200)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
-                    return
-                else:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Invalid credentials")
-                    return
+                if user.get("username") == username:
+                    if user.get("password") == hashed_password:
+                        token = str(uuid.uuid4())
+                        add_session(token, user)
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
+                        return
+                    else:
+                        self.send_response(401)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(b"Invalid credentials")
+                        return
             self.send_response(401)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -94,7 +95,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
                         self.wfile.write(b'Cannot start a session when another sessions for this licesenplate is already started.')
-                        return 
+                        return
                     session = {
                         "licenseplate": data['licenseplate'],
                         "started": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
@@ -193,7 +194,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"status": "Success", "reservation": data}).encode("utf-8"))
             return
-        
+
         elif self.path == "/vehicles":
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -234,7 +235,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"status": "Success", "vehicle": data}).encode("utf-8"))
             return
-        
+
 
         elif self.path.startswith("/vehicles/"):
             token = self.headers.get('Authorization')
@@ -267,7 +268,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"status": "Accepted", "vehicle": vehicles[session_user["username"]][lid]}).encode("utf-8"))
             return
-        
+
 
         elif self.path.startswith("/payments"):
             token = self.headers.get('Authorization')
@@ -286,7 +287,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
                     self.wfile.write(b"Access denied")
-                    return 
+                    return
                 for field in ["amount"]:
                     if not field in data:
                         self.send_response(401)
@@ -360,8 +361,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Parking lot not found")
                     return
-    
-                
+
+
         elif self.path == "/profile":
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -425,7 +426,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Reservation not found")
                     return
-                
+
 
         elif self.path.startswith("/vehicles/"):
             token = self.headers.get('Authorization')
@@ -464,7 +465,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"status": "Success", "vehicle": vehicles[session_user["username"]][lid]}, default=str).encode("utf-8"))
             return
-        
+
         elif self.path.startswith("/payments/"):
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -491,7 +492,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Validation failed", "info": "The validation of the security hash could not be validated for this transaction."}).encode("utf-8"))
-                    return  
+                    return
                 payment["completed"] = datetime.now().strftime("%d-%m-%Y %H:%I:%s")
                 payment["t_data"] = data.get("t_data", {})
                 save_payment_data(payments)
@@ -556,8 +557,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Parking lot not found")
                     return
-                
-        
+
+
         elif self.path.startswith("/reservations/"):
             reservations = load_reservation_data()
             parking_lots = load_parking_lot_data()
@@ -595,7 +596,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Reservation not found")
                     return
-                
+
 
         elif self.path.startswith("/vehicles/"):
             lid = self.path.replace("/vehicles/", "")
@@ -686,7 +687,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.send_response(200)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
-                        self.wfile.write(json.dumps(rsessions).encode('utf-8'))  
+                        self.wfile.write(json.dumps(rsessions).encode('utf-8'))
                     else:
                         sid = self.path.split("/")[-1]
                         if not "ADMIN" == session_user.get('role') and not session_user["username"] == sessions[sid].get("user"):
@@ -743,8 +744,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Reservation not found")
                     return
-                
-        
+
+
         elif self.path == "/payments":
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -763,8 +764,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(payments).encode("utf-8"))
             return
-        
-    
+
+
         elif self.path.startswith("/payments/"):
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -821,7 +822,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
             return
-        
+
 
         elif self.path.startswith("/billing/"):
             token = self.headers.get('Authorization')
@@ -859,7 +860,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
             return
-        
+
 
         elif self.path.startswith("/vehicles"):
             token = self.headers.get('Authorization')
@@ -873,7 +874,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             if self.path.endswith("/reservations"):
                 vid = self.path.split("/")[2]
                 vehicles = load_json("data/vehicles.json")
-                uvehicles = vehicles.get(session_user["username"], {}) 
+                uvehicles = vehicles.get(session_user["username"], {})
                 if vid not in uvehicles:
                     self.send_response(404)
                     self.send_header("Content-type", "application/json")
@@ -917,7 +918,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps(vehicles.get(user, {}), default=str).encode("utf-8"))
                 return
-            
+
 
 server = HTTPServer(('localhost', 8000), RequestHandler)
 print("Server running on http://localhost:8000")
