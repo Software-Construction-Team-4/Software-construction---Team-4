@@ -1,0 +1,1 @@
+vehicles = load_json("data/vehicles.json")
