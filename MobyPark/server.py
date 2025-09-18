@@ -161,7 +161,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
             reservations = load_reservation_data()
             parking_lots = load_parking_lot_data()
-            rid = str(len(reservations) + 1)
+            rid = int(len(reservations) + 1)
             for field in ["licenseplate", "startdate", "enddate", "parkinglot"]:
                 if not field in data:
                     self.send_response(401)
