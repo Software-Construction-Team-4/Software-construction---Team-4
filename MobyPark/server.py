@@ -162,6 +162,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             reservations = load_reservation_data()
             parking_lots = load_parking_lot_data()
 
+            rid = int(len(reservations) + 1)
+
             for field in ["licenseplate", "startdate", "enddate", "parkinglot"]:
                 if not field in data:
                     self.send_response(401)
@@ -896,7 +898,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             if self.path.endswith("/reservations"):
                 vid = self.path.split("/")[2]
                 vehicles = load_json("data/vehicles.json")
-                uvehicles = vehicles.get(session_user["username"], {})
+
+                uvehicles = {
+                v["id"]: v
+                for v in vehicles
+                if v.get("user_id") == session_user.get("user_id")
+            }
                 if vid not in uvehicles:
                     self.send_response(404)
                     self.send_header("Content-type", "application/json")
