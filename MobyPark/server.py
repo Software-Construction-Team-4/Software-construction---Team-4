@@ -954,6 +954,12 @@ class RequestHandler(BaseHTTPRequestHandler):
                 vehicles = load_json("data/vehicles.json")
                 users = load_json('data/users.json')
                 user = session_user["username"]
+
+                user_vehicles = [
+                    v for v in vehicles
+                    if v.get("user_id") == session_user.get("user_id")
+                ]
+
                 if "ADMIN" == session_user.get("role") and self.path != "/vehicles":
                     user = self.path.replace("/vehicles/", "")
                     if user not in [u["username"] for u in users]:
@@ -965,7 +971,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps(vehicles.get(user, {}), default=str).encode("utf-8"))
+                self.wfile.write(json.dumps(user_vehicles or [], default=str).encode("utf-8"))
                 return
 
 
