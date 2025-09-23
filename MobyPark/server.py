@@ -781,7 +781,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             payments = []
             session_user = get_session(token)
             for payment in load_payment_data():
-                if payment["username"] == session_user["username"]:
+                if payment.get("initiator") == session_user["username"]:
                     payments.append(payment)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
