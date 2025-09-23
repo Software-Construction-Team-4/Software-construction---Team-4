@@ -394,16 +394,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"Username already taken")
                 return
-            
+
             #data["username"] = session_user["username"]
             if data["password"]:
                 data["password"] = hashlib.md5(data["password"].encode()).hexdigest()
-            
+
             for user in users:
                 if session_user["username"] == user["username"] and session_user["password"] == user["password"]:
                     users.remove(user)
                     users.append(data)
-    
+
             save_user_data(users)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -563,7 +563,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.wfile.write(b"Access denied")
                         return
                     if 'sessions' in self.path:
-                        sessions = load_json(f'data/pdata/p{lid}-sessions.json')
+                        sessions = load_json(f'data/pdata/p{lid}-sessions.json', default={})
                         sid = self.path.split("/")[-1]
                         if sid.isnumeric():
                             del sessions[sid]
@@ -713,7 +713,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(b"Unauthorized: Invalid or missing session token")
                         return
-                    sessions = load_json(f'data/pdata/p{lid}-sessions.json')
+                    sessions = load_json(f'data/pdata/p{lid}-sessions.json', default={})
                     rsessions = []
                     if self.path.endswith('/sessions'):
                         if "ADMIN" == session_user.get('role'):
@@ -842,7 +842,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             data = []
             session_user = get_session(token)
             for pid, parkinglot in load_parking_lot_data().items():
-                for sid, session in load_json(f'data/pdata/p{pid}-sessions.json').items():
+                for sid, session in load_json(f'data/pdata/p{pid}-sessions.json', default={}).items():
                     if session["user"] == session_user["username"]:
                         amount, hours, days = sc.calculate_price(parkinglot, sid, session)
                         transaction = sc.generate_payment_hash(sid, session)
@@ -880,7 +880,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Access denied")
                 return
             for pid, parkinglot in load_parking_lot_data().items():
-                for sid, session in load_json(f'data/pdata/p{pid}-sessions.json').items():
+                for sid, session in load_json(f'data/pdata/p{pid}-sessions.json', default={}).items():
                     if session["user"] == user:
                         amount, hours, days = sc.calculate_price(parkinglot, sid, session)
                         transaction = sc.generate_payment_hash(sid, session)
@@ -938,7 +938,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 v["id"]: v
                 for v in vehicles
                 if v.get("user_id") == session_user.get("user_id")
-            }   
+            }
                 if vid not in uvehicles:
                     self.send_response(404)
                     self.send_header("Content-type", "application/json")
