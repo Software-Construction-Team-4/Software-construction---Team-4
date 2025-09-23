@@ -864,7 +864,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Access denied")
-                return
+                return  
+            # d
             for pid, parkinglot in load_parking_lot_data().items():
                 for sid, session in load_json(f'data/pdata/p{pid}-sessions.json').items():
                     if session["user"] == user:
