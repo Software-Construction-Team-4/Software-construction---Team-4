@@ -81,7 +81,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             if 'sessions' in self.path:
                 lid = self.path.split("/")[2]
                 data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-                sessions = load_json(f'data/pdata/p{lid}-sessions.json')
+                sessions = load_json(f'data/pdata/p{lid}-sessions.json', default={})
                 if self.path.endswith('start'):
                     if 'licenseplate' not in data:
                         self.send_response(401)
@@ -915,6 +915,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps([]).encode("utf-8"))
                 return
+
             elif self.path.endswith("/history"):
                 vid = self.path.split("/")[2]
                 vehicles = load_json("data/vehicles.json")
