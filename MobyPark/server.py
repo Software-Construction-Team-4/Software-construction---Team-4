@@ -468,39 +468,36 @@ class RequestHandler(BaseHTTPRequestHandler):
             data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
             vehicles = load_json("data/vehicles.json")
             lid = self.path.replace("/vehicles/", "")
-            if lid:
-                for field in ["license_plate","make","model","color","year"]:
-                    if not field in data:
-                        self.send_response(401)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                        return
-                
-                newVehicle = None
-                for v in vehicles:
-                    if v.get("id") == lid:
-                        v["license_plate"] = data["license_plate"]
-                        v["make"] = data["make"]
-                        v["model"] = data["model"]
-                        v["color"] = data["color"]
-                        v["year"] = data["year"]
-                        v["updated at"] = datetime.now().strftime("%Y-%m-%d")
+            checkIdVehicle = [v for v in vehicles if v.get("id") == lid]
 
-                        newVehicle = v
-
-                save_data("data/vehicles.json", vehicles)
-                self.send_response(200)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "Updated", "vehicle": newVehicle}, default=str).encode("utf-8"))
-                return
-            else:
+            if len(checkIdVehicle) == 0:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Vehicle not found")
                 return
+            
+            for field in ["license_plate","make","model","color","year"]:
+                if not field in data:
+                    self.send_response(401)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
+                    return
+        
+            checkIdVehicle[0]["license_plate"] = data["license_plate"]
+            checkIdVehicle[0]["make"] = data["make"]
+            checkIdVehicle[0]["model"] = data["model"]
+            checkIdVehicle[0]["color"] = data["color"]
+            checkIdVehicle[0]["year"] = data["year"]
+            checkIdVehicle[0]["updated at"] = datetime.now().strftime("%Y-%m-%d")
+
+            save_data("data/vehicles.json", vehicles)
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "Updated", "vehicle": checkIdVehicle[0]}, default=str).encode("utf-8"))
+            return
 
         elif self.path.startswith("/payments/"):
             token = self.headers.get('Authorization')
