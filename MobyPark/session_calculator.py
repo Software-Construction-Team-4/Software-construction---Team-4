@@ -4,12 +4,15 @@ from hashlib import md5
 import math
 import uuid
 
+from datetime import datetime
+import math
+
 def calculate_price(parkinglot, sid, data):
     price = 0
-    start = datetime.fromisoformat(data["started"])
+    start = datetime.strptime(data["started"], "%d-%m-%Y %H:%M:%S")
 
     if data.get("stopped"):
-        end = datetime.fromisoformat(data["stopped"])
+        end = datetime.strptime(data["stopped"], "%d-%m-%Y %H:%M:%S")
     else:
         end = datetime.now()
 
@@ -22,11 +25,11 @@ def calculate_price(parkinglot, sid, data):
         price = float(parkinglot.get("daytariff", 999)) * (diff.days + 1)
     else:
         price = float(parkinglot.get("tariff")) * hours
-
         if price > float(parkinglot.get("daytariff", 999)):
             price = float(parkinglot.get("daytariff", 999))
 
     return (price, hours, diff.days + 1 if end.date() > start.date() else 0)
+
 
 
 
