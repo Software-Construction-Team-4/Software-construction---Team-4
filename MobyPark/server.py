@@ -804,7 +804,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Reservation not found")
                     return
-
+                
         elif self.path == "/payments":
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -824,7 +824,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(payments).encode("utf-8"))
             return
 
-
         elif self.path.startswith("/payments/"):
             token = self.headers.get('Authorization')
             if not token or not get_session(token):
@@ -833,23 +832,28 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"Unauthorized: Invalid or missing session token")
                 return
-            payments = []
+
             session_user = get_session(token)
-            user = self.path.replace("/payments/", "")
-            if not "ADMIN" == session_user.get('role'):
+            user = self.path.replace("/payments/", "").strip("/")
+
+            if session_user.get('role') != "ADMIN":
                 self.send_response(403)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Access denied")
                 return
+
+            payments = []
             for payment in load_payment_data():
-                if payment.get("initiator") == session_user["username"]:
+                if payment.get("initiator") == user:
                     payments.append(payment)
+
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(payments).encode("utf-8"))
             return
+
 
 
         elif self.path == "/billing":
