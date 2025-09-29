@@ -766,9 +766,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         elif self.path.startswith("/reservations/"):
             reservations = load_reservation_data()
-            rid = self.path.replace("/reservations/", "")
+            rid = self.path.replace("/reservations/", "").strip("/")
+
             if rid:
-                if rid in reservations:
+                # find reservation in the list by ID
+                reservation = next((r for r in reservations if str(r.get("id")) == rid), None)
+
+                if reservation:
+                    # authentication
                     token = self.headers.get('Authorization')
                     if not token or not get_session(token):
                         self.send_response(401)
@@ -776,18 +781,22 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(b"Unauthorized: Invalid or missing session token")
                         return
+
                     session_user = get_session(token)
-                    if not "ADMIN" == session_user.get('role') and not session_user["username"] == reservations[rid].get("user"):
+
+                    # authorization: admin or owner of reservation
+                    if not (session_user.get('role') == "ADMIN" or session_user["username"] == reservation.get("user")):
                         self.send_response(403)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
                         self.wfile.write(b"Access denied")
                         return
-                    save_reservation_data(reservations)
+
+                    # return the reservation
                     self.send_response(200)
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
-                    self.wfile.write(json.dumps(reservations[rid]).encode("utf-8"))
+                    self.wfile.write(json.dumps(reservation).encode("utf-8"))
                     return
                 else:
                     self.send_response(404)
@@ -795,7 +804,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Reservation not found")
                     return
-
 
         elif self.path == "/payments":
             token = self.headers.get('Authorization')
