@@ -895,8 +895,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             # d
             for pid, parkinglot in load_parking_lot_data().items():
                 for sid, session in load_json(f'data/pdata/p{pid}-sessions.json', default={}).items():
-                    if session["user"] == user:
-                    # if session["user"] == session_user["username"]:
+                    # if session["user"] == user:
+                    if session["user"] == session_user["username"]:
                         amount, hours, days = sc.calculate_price(parkinglot, sid, session)
                         transaction = sc.generate_payment_hash(sid, session)
                         payed = sc.check_payment_amount(transaction)
