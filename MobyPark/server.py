@@ -539,7 +539,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Validation failed", "info": "The validation of the security hash could not be validated for this transaction."}).encode("utf-8"))
                     return
-                payment["completed"] = datetime.now().strftime("%d-%m-%Y %H:%I:%s")
+                payment["completed"] = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
                 payment["t_data"] = data.get("t_data", {})
                 save_payment_data(payments)
                 self.send_response(200)
