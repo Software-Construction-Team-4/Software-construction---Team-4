@@ -651,8 +651,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b"Reservation not found")
                     return
 
-
-
         elif self.path.startswith("/vehicles/"):
             lid = self.path.replace("/vehicles/", "")
             if lid:
@@ -663,28 +661,27 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(b"Unauthorized: Invalid or missing session token")
                     return
+
                 session_user = get_session(token)
                 vehicles = load_json("data/vehicles.json")
 
-                uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("user_id")
-            }
+                uvehicles = {v["id"]: v for v in vehicles if v.get("user_id") == session_user.get("id")}
+
                 if lid not in uvehicles:
                     self.send_response(403)
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
                     self.wfile.write(b"Vehicle not found!")
                     return
-                del vehicles[session_user["username"]][lid]
+
+                vehicles = [v for v in vehicles if v["id"] != lid]
+
                 save_data("data/vehicles.json", vehicles)
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
                 return
-
 
     def do_GET(self):
         if self.path == "/profile":
