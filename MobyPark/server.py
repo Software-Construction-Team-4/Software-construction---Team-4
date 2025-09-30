@@ -609,8 +609,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             reservations = load_reservation_data()
             parking_lots = load_parking_lot_data()
             rid = self.path.replace("/reservations/", "")
+            
             if rid:
-                if rid in reservations:
+                reservation = next((r for r in reservations if r.get("id") == rid), None)
+                
+                if reservation:
                     token = self.headers.get('Authorization')
                     if not token or not get_session(token):
                         self.send_response(401)
@@ -618,30 +621,36 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(b"Unauthorized: Invalid or missing session token")
                         return
+                    
                     session_user = get_session(token)
-                    if "ADMIN" == session_user.get('role') or session_user["username"] == reservations[rid].get("user"):
-                        del reservations[rid]
+                    if session_user.get("role") == "ADMIN" or session_user["username"] == reservation.get("user_id"):
+                        pid = reservation.get("parking_lot_id")
+                        if pid in parking_lots:
+                            parking_lots[pid]["reserved"] -= 1
+
+                        reservations = [r for r in reservations if r.get("id") != rid]
+
+                        save_reservation_data(reservations)
+                        save_parking_lot_data(parking_lots)
+
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
+                        return
                     else:
                         self.send_response(403)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
                         self.wfile.write(b"Access denied")
                         return
-                    pid = reservations[rid]["parkinglot"]
-                    parking_lots[pid]["reserved"] -= 1
-                    save_reservation_data(reservations)
-                    save_parking_lot_data(parking_lots)
-                    self.send_response(200)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
-                    return
                 else:
                     self.send_response(404)
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
                     self.wfile.write(b"Reservation not found")
                     return
+
 
 
         elif self.path.startswith("/vehicles/"):
