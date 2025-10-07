@@ -726,75 +726,16 @@ class RequestHandler(BaseHTTPRequestHandler):
             from payments import do_GET as handle_get
             handle_get(self)
             return
+        
 
-        elif self.path == "/billing":
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            data = []
-            session_user = get_session(token)
-            for pid, parkinglot in load_parking_lot_data().items():
-                for sid, session in load_json(f'data/pdata/p{pid}-sessions.json', default={}).items():
-                    if session["user"] == session_user["username"]:
-                        amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                        transaction = sc.generate_payment_hash(sid, session)
-                        payed = sc.check_payment_amount(transaction)
-                        data.append({
-                            "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},
-                            "parking": {k: v for k, v in parkinglot.items() if k in ["name", "location", "tariff", "daytariff"]},
-                            "amount": amount,
-                            "thash": transaction,
-                            "payed": payed,
-                            "balance": amount - payed
-                        })
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
+        elif self.path.startswith ("/billing/"):
+            from payments import do_GET_test as handle_get1
+            handle_get1(self)
             return
-
-
-        elif self.path.startswith("/billing/"):
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            data = []
-            session_user = get_session(token)
-            user = self.path.replace("/billing/", "")
-            if not "ADMIN" == session_user.get('role'):
-                self.send_response(403)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Access denied")
-                return  
-            # d
-            for pid, parkinglot in load_parking_lot_data().items():
-                for sid, session in load_json(f'data/pdata/p{pid}-sessions.json', default={}).items():
-                    # if session["user"] == user:
-                    if session["user"] == session_user["username"]:
-                        amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                        transaction = sc.generate_payment_hash(sid, session)
-                        payed = sc.check_payment_amount(transaction)
-                        data.append({
-                            "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},
-                            "parking": {k: v for k, v in parkinglot.items() if k in ["name", "location", "tariff", "daytariff"]},
-                            "amount": amount,
-                            "thash": transaction,
-                            "payed": payed,
-                            "balance": amount - payed
-                        })
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
+        
+        elif self.path == "/billing":
+            from payments import do_GET as handle_get
+            handle_get(self)
             return
 
         elif self.path.startswith("/vehicles"):
@@ -871,9 +812,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(user_vehicles or [], default=str).encode("utf-8"))
                 return
             
-
-
-
 server = HTTPServer(('localhost', 8000), RequestHandler)
 print("Server running on http://localhost:8000")
 server.serve_forever()
