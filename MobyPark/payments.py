@@ -107,6 +107,7 @@ def do_PUT(self):
                     "info": "The validation of the security hash could not be validated for this transaction."
                 }).encode("utf-8"))
                 return
+
             payment["completed"] = True
             payment["completed_at"] = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             payment["t_data"] = data.get("t_data", {})
@@ -123,6 +124,7 @@ def do_PUT(self):
             self.end_headers()
             self.wfile.write(b"Payment not found!")
             return
+
 
 def do_GET(self):
     if self.path == "/payments":
