@@ -178,9 +178,7 @@ def do_GET(self):
         self.wfile.write(json.dumps(payments).encode("utf-8"))
         return
 
-
-def do_GET(self):
-    if self.path == "/billing":
+    elif self.path == "/billing":
         token = self.headers.get('Authorization')
         if not token or not get_session(token):
             self.send_response(401)

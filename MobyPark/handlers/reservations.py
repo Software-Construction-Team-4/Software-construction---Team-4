@@ -1,8 +1,7 @@
 import json
 from datetime import datetime
-from storage_utils import load_json, save_data, save_user_data, load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
+from storage_utils import load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data  # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
-import session_calculator as sc
 
 def do_POST(self):
     if self.path == "/reservations":
