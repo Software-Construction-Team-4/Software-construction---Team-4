@@ -1,0 +1,134 @@
+import json
+import hashlib
+import uuid
+from storage_utils import load_json, save_user_data # pyright: ignore[reportUnknownVariableType]
+from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
+
+def do_POST(self):
+    if self.path == "/register":
+            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+            username = data.get("username")
+            password = data.get("password")
+            name = data.get("name")
+            hashed_password = hashlib.md5(password.encode()).hexdigest()
+            users = load_json('data/users.json')
+            for user in users:
+                if username == user['username']:
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(b"Username already taken")
+                    return
+            users.append({
+                'username': username,
+                'password': hashed_password,
+                'name': name
+            })
+            save_user_data(users)
+            self.send_response(201)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"User created")
+
+
+    elif self.path == "/login":
+            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+            username = data.get("username")
+            password = data.get("password")
+            if not username or not password:
+                self.send_response(400)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"Missing credentials")
+                return
+            hashed_password = hashlib.md5(password.encode()).hexdigest()
+            users = load_json('data/users.json')
+            for user in users:
+                if user.get("username") == username:
+                    if user.get("password") == hashed_password:
+                        token = str(uuid.uuid4())
+                        add_session(token, user)
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
+                        return
+                    else:
+                        self.send_response(401)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(b"Invalid credentials")
+                        return
+            self.send_response(401)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"User not found")
+
+def do_PUT(self):
+    if self.path == "/profile":
+        token = self.headers.get('Authorization')
+        if not token or not get_session(token):
+            self.send_response(401)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Unauthorized: Invalid or missing session token")
+            return
+
+        session_user = get_session(token)
+        data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+        users = load_json('data/users.json')
+
+        data["username"] = session_user["username"]
+
+        if data.get("password"):
+            data["password"] = hashlib.md5(data["password"].encode()).hexdigest()
+        else:
+            data["password"] = session_user["password"]
+
+        for user in users:
+            if session_user["username"] == user["username"] and session_user["password"] == user["password"]:
+                for key in data:
+                    user[key] = data[key]
+
+        save_user_data(users)
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"User updated successfully")
+
+
+def do_GET(self):
+    if self.path == "/profile":
+            token = self.headers.get('Authorization')
+            if not token or not get_session(token):
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"Unauthorized: Invalid or missing session token")
+                return
+            session_user = get_session(token)
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(session_user).encode('utf-8'))
+
+
+    elif self.path == "/logout":
+            token = self.headers.get('Authorization')
+            if token and get_session(token):
+                remove_session(token)
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"User logged out")
+                return
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Invalid session token")
+
+    return
+
+
+def do_DELETE(self):
+    return
