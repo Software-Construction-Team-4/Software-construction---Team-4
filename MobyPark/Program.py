@@ -12,6 +12,5 @@ def ReservationsToDict():
     newreservations = {r["id"]: r for r in reservations}
     save_reservation_data(newreservations)
 
-#ReservationsToDict()
 
 
