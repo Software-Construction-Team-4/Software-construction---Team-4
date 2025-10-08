@@ -6,7 +6,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from storage_utils import load_json, save_data, save_user_data, load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
 import session_calculator as sc
-# from payments import do_POST as pay_POST, handle_put as do_PUT, handle_get as do_GET
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -73,109 +72,34 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         elif self.path.startswith("/parking-lots"):
-            from MobyPark.handlers.parkingLots import do_POST as parking_post
+            from handlers.parkingLots import do_POST as parking_post
             parking_post(self)
             return
 
         elif self.path == "/reservations":
-            from reservations import do_POST as handle_post
+            from handlers.reservations import do_POST as handle_post
             handle_post(self)
             return
 
         elif self.path == "/vehicles":
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            vehicles = load_json("data/vehicles.json")
-
-            uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("user_id")
-            }
-            for field in ["name", "license_plate"]:
-                if not field in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                    return
-            lid = data["license_plate"].replace("-", "")
-            if lid in uvehicles:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Vehicle already exists", "data": uvehicles.get(lid)}).encode("utf-8"))
-                return
-            if not uvehicles:
-                vehicles[session_user["username"]] = {}
-            vehicles[session_user["username"]][lid] = {
-                "licenseplate": data["license_plate"],
-                "name": data["name"],
-                "created_at": datetime.now(),
-                "updated_at": datetime.now()
-            }
-            save_data("data/vehicles.json", vehicles)
-            self.send_response(201)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "Success", "vehicle": data}).encode("utf-8"))
+            from handlers.vehicles import do_POST as handle_post
+            handle_post(self)
             return
 
-
         elif self.path.startswith("/vehicles/"):
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            vehicles = load_json("data/vehicles.json")
-
-            uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("user_id")
-            }
-
-            for field in ["parkinglot"]:
-                if not field in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                    return
-            lid = self.path.replace("/vehicles/", "").replace("/entry", "")
-            if lid not in uvehicles:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Vehicle does not exist", "data": lid}).encode("utf-8"))
-                return
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "Accepted", "vehicle": vehicles[session_user["username"]][lid]}).encode("utf-8"))
+            from handlers.vehicles import do_POST as handle_post
+            handle_post(self)
             return
         
 
         elif self.path.startswith("/payments"):
-            from MobyPark.handlers.payments import do_POST as handle_post
+            from handlers.payments import do_POST as handle_post
             handle_post(self)
             return
 
     def do_PUT(self):
         if self.path.startswith("/parking-lots/"):
-            from MobyPark.handlers.parkingLots import do_PUT as parking_put
+            from handlers.parkingLots import do_PUT as parking_put
             parking_put(self)
             return
 
@@ -211,104 +135,38 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         elif self.path.startswith("/reservations/"):
-            from reservations import do_PUT as handle_put
+            from handlers.reservations import do_PUT as handle_put
             handle_put(self)
             return
 
 
         elif self.path.startswith("/vehicles/"):
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            vehicles = load_json("data/vehicles.json")
-            lid = self.path.replace("/vehicles/", "")
-            checkIdVehicle = next((v for v in vehicles if v.get("id") == lid), None)
-
-            if checkIdVehicle is None:
-                self.send_response(404)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Vehicle not found")
-                return
-            
-            for field in ["license_plate","make","model","color","year"]:
-                if not field in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                    return
-        
-            checkIdVehicle["license_plate"] = data["license_plate"]
-            checkIdVehicle["make"] = data["make"]
-            checkIdVehicle["model"] = data["model"]
-            checkIdVehicle["color"] = data["color"]
-            checkIdVehicle["year"] = data["year"]
-            checkIdVehicle["updated at"] = datetime.now().strftime("%Y-%m-%d")
-
-            save_data("data/vehicles.json", vehicles)
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "Updated", "vehicle": checkIdVehicle}, default=str).encode("utf-8"))
+            from handlers.vehicles import do_PUT as handle_put
+            handle_put(self)
             return
         
-    
         elif self.path.startswith("/payments/"):
-            from MobyPark.handlers.payments import do_PUT as handle_put
+            from handlers.payments import do_PUT as handle_put
             handle_put(self)
             return
 
 
     def do_DELETE(self):
         if self.path.startswith("/parking-lots/"):
-            from MobyPark.handlers.parkingLots import do_DELETE as parking_delete
+            from handlers.parkingLots import do_DELETE as parking_delete
             parking_delete(self)
             return
 
 
         elif self.path.startswith("/reservations/"):
-            from reservations import do_DELETE as handle_delete
+            from handlers.reservations import do_DELETE as handle_delete
             handle_delete(self)
             return
 
         elif self.path.startswith("/vehicles/"):
-            lid = self.path.replace("/vehicles/", "")
-            if lid:
-                token = self.headers.get('Authorization')
-                if not token or not get_session(token):
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                    return
-
-                session_user = get_session(token)
-                vehicles = load_json("data/vehicles.json")
-
-                uvehicles = {v["id"]: v for v in vehicles if v.get("user_id") == session_user.get("id")}
-
-                if lid not in uvehicles:
-                    self.send_response(403)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Vehicle not found!")
-                    return
-
-                vehicles = [v for v in vehicles if v["id"] != lid]
-
-                save_data("data/vehicles.json", vehicles)
-                self.send_response(200)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
-                return
+            from handlers.vehicles import do_DELETE as handle_delete
+            handle_delete(self)
+            return
 
     def do_GET(self):
         if self.path == "/profile":
@@ -342,42 +200,38 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         elif self.path.startswith("/parking-lots/"):
-            from MobyPark.handlers.parkingLots import do_GET as parking_get
+            from handlers.parkingLots import do_GET as parking_get
             parking_get(self)
             return
 
 
         elif self.path.startswith("/reservations/"):
-            from reservations import do_GET as handle_get
+            from handlers.reservations import do_GET as handle_get
             handle_get(self)
             return
                 
         elif self.path.startswith("/payments"):
-            from MobyPark.handlers.payments import do_GET as handle_get
+            from handlers.payments import do_GET as handle_get
             handle_get(self)
             return
         
 
         elif self.path.startswith ("/billing/"):
-            from MobyPark.handlers.payments import do_GET_test as handle_get1
+            from handlers.payments import do_GET_test as handle_get1
             handle_get1(self)
             return
         
         elif self.path == "/billing":
-            from MobyPark.handlers.payments import do_GET as handle_get
+            from handlers.payments import do_GET as handle_get
             handle_get(self)
             return
 
         elif self.path.startswith("/vehicles"):
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            session_user = get_session(token)
-            if self.path.endswith("/reservations"):
+            from handlers.vehicles import do_GET as handle_get
+            handle_get(self)
+            return
+
+        elif self.path.endswith("/history"):
                 vid = self.path.split("/")[2]
                 vehicles = load_json("data/vehicles.json")
 
@@ -397,28 +251,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps([]).encode("utf-8"))
                 return
-
-            elif self.path.endswith("/history"):
-                vid = self.path.split("/")[2]
-                vehicles = load_json("data/vehicles.json")
-
-                uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("user_id")
-            }
-                if vid not in uvehicles:
-                    self.send_response(404)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Not found!")
-                    return
-                self.send_response(200)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps([]).encode("utf-8"))
-                return
-            else:
+        else:
                 vehicles = load_json("data/vehicles.json")
                 users = load_json('data/users.json')
                 user = session_user["username"]
