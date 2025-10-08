@@ -12,64 +12,14 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
 
         if self.path == "/register":
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            username = data.get("username")
-            password = data.get("password")
-            name = data.get("name")
-            hashed_password = hashlib.md5(password.encode()).hexdigest()
-            users = load_json('data/users.json')
-            for user in users:
-                if username == user['username']:
-                    self.send_response(200)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Username already taken")
-                    return
-            users.append({
-                'username': username,
-                'password': hashed_password,
-                'name': name
-            })
-            save_user_data(users)
-            self.send_response(201)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"User created")
-
+            from handlers.user import do_POST as handle_post
+            handle_post(self)
+            return
 
         elif self.path == "/login":
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            username = data.get("username")
-            password = data.get("password")
-            if not username or not password:
-                self.send_response(400)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Missing credentials")
-                return
-            hashed_password = hashlib.md5(password.encode()).hexdigest()
-            users = load_json('data/users.json')
-            for user in users:
-                if user.get("username") == username:
-                    if user.get("password") == hashed_password:
-                        token = str(uuid.uuid4())
-                        add_session(token, user)
-                        self.send_response(200)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
-                        return
-                    else:
-                        self.send_response(401)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b"Invalid credentials")
-                        return
-            self.send_response(401)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"User not found")
-
+            from handlers.user import do_POST as handle_post
+            handle_post(self)
+            return
 
         elif self.path.startswith("/parking-lots"):
             from handlers.parkingLots import do_POST as parking_post
@@ -105,34 +55,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         elif self.path == "/profile":
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            users = load_json('data/users.json')
-
-            data["username"] = session_user["username"]
-            if data["password"]:
-                data["password"] = hashlib.md5(data["password"].encode()).hexdigest()
-            
-            data["id"] = session_user["id"]
-
-            for user in users:
-                if session_user["username"] == user["username"] and session_user["password"] == user["password"]:
-                    for key in data:
-                        user[key] = data[key]
-
-            save_user_data(users)
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"User updated succesfully")
-
+            from handlers.user import do_PUT as handle_put
+            handle_put(self)
+            return
 
         elif self.path.startswith("/reservations/"):
             from handlers.reservations import do_PUT as handle_put
@@ -170,34 +95,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/profile":
-            token = self.headers.get('Authorization')
-            if not token or not get_session(token):
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-            session_user = get_session(token)
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(session_user).encode('utf-8'))
-
+            from handlers.user import do_GET as handle_get
+            handle_get(self)
+            return
 
         elif self.path == "/logout":
-            token = self.headers.get('Authorization')
-            if token and get_session(token):
-                remove_session(token)
-                self.send_response(200)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"User logged out")
-                return
-            self.send_response(400)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Invalid session token")
-
+            from handlers.user import do_GET as handle_get
+            handle_get(self)
+            return
 
         elif self.path.startswith("/parking-lots/"):
             from handlers.parkingLots import do_GET as parking_get
