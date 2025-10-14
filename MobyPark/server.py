@@ -139,7 +139,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif self.path.endswith("/history"):
                 vid = self.path.split("/")[2]
                 vehicles = load_json("data/vehicles.json")
-
+                token = self.headers.get('Authorization')
+                session_user = get_session(token)
                 uvehicles = {
                 v["id"]: v
                 for v in vehicles
