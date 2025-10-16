@@ -123,7 +123,7 @@ def do_PUT(self):
             checkIdVehicle["model"] = data["model"]
             checkIdVehicle["color"] = data["color"]
             checkIdVehicle["year"] = data["year"]
-            checkIdVehicle["updated at"] = datetime.now().strftime("%Y-%m-%d")
+            checkIdVehicle["updated_at"] = datetime.now().strftime("%Y-%m-%d")
 
             save_data("data/vehicles.json", vehicles)
             self.send_response(200)
