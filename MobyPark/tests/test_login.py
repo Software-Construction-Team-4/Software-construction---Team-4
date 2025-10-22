@@ -3,7 +3,7 @@ import pytest
 
 BASE_URL = "http://localhost:8000"
 
-def test_register_endpoint():
+def test_login_endpoint():
     DummyUserOne ={
         "username": "sina",
         "password": "321"
