@@ -4,11 +4,11 @@ import csv
 def load_json(filename, default=[]):
     try:
         with open(filename, 'r') as file:
-            return json.load(file)
+            return json.load(file)    #
     except FileNotFoundError:
         return default
 
-def write_json(filename, data):
+def write_json(filename, data):      #
     with open(filename, 'w') as file:
         json.dump(data, file, default=str)
 
@@ -25,7 +25,7 @@ def write_csv(filename, data):
         writer = csv.writer(file)
         for row in data:
             writer.writerow(row)
-#adasdasd
+
 def load_text(filename):
     try:
         with open(filename, 'r') as file:
@@ -39,7 +39,7 @@ def write_text(filename, data):
             file.write(line + '\n')
 
 def save_data(filename, data):
-    if filename.endswith('.json'):
+    if filename.endswith('.json'):   #
         write_json(filename, data)
     elif filename.endswith('.csv'):
         write_csv(filename, data)
@@ -54,7 +54,7 @@ def load_data(filename):
     elif filename.endswith('.csv'):
         return load_csv(filename)
     elif filename.endswith('.txt'):
-        return load_text(filename)
+        return load_text(filename)  #
     else:
         return None
 
@@ -65,15 +65,15 @@ def save_user_data(data):
     save_data('data/users.json', data)
 
 def load_parking_lot_data():
-    return load_data('data/parking-lots.json')
+    return load_data('data/parking-lots.json')  #
 
 def save_parking_lot_data(data):
-    save_data('data/parking-lots.json', data)
+    save_data('data/parking-lots.json', data) #
 
 def load_reservation_data():
     return load_data('data/reservations.json')
 
-def save_reservation_data(data):
+def save_reservation_data(data):       #
     save_data('data/reservations.json', data)
 
 def load_payment_data():
@@ -87,3 +87,4 @@ def load_discounts_data():
 
 def save_discounts_data(data):
     save_data('data/discounts.csv', data)
+
