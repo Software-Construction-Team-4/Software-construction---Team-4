@@ -27,7 +27,7 @@ class User:
         self.birth_year = birth_year
         self.active = active
 
-    def update(self):
+    def update(self) -> 'User':
         result = cursor.execute(f'''
                                  INSERT INTO {User.TABLE} (username, password, name, email, phone, role, created_at, birth_year, active)
                                  VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
