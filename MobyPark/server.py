@@ -3,6 +3,7 @@ import hashlib
 import uuid
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from MobyPark.db.users import User, UserRole
 from storage_utils import load_json, save_data, save_user_data, load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
 import session_calculator as sc
@@ -40,7 +41,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             from handlers.vehicles import do_POST as handle_post
             handle_post(self)
             return
-        
+
 
         elif self.path.startswith("/payments"):
             from handlers.payments import do_POST as handle_post
@@ -69,7 +70,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             from handlers.vehicles import do_PUT as handle_put
             handle_put(self)
             return
-        
+
         elif self.path.startswith("/payments/"):
             from handlers.payments import do_PUT as handle_put
             handle_put(self)
@@ -114,18 +115,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             from handlers.reservations import do_GET as handle_get
             handle_get(self)
             return
-                
+
         elif self.path.startswith("/payments"):
             from handlers.payments import do_GET as handle_get
             handle_get(self)
             return
-        
+
 
         elif self.path.startswith ("/billing/"):
             from handlers.payments import do_GET_test as handle_get1
             handle_get1(self)
             return
-        
+
         elif self.path == "/billing":
             from handlers.payments import do_GET as handle_get
             handle_get(self)
@@ -159,17 +160,17 @@ class RequestHandler(BaseHTTPRequestHandler):
                 return
         else:
                 vehicles = load_json("data/vehicles.json")
-                users = load_json('data/users.json')
-                user = session_user["username"]
+                users = User.get_all_users()
+                user = session_user.username
 
                 user_vehicles = [
                     v for v in vehicles
-                    if v.get("user_id") == session_user.get("user_id")
+                    if v.get("user_id") == session_user.id
                 ]
 
-                if "ADMIN" == session_user.get("role") and self.path != "/vehicles":
+                if session_user.role == UserRole.ADMIN and self.path != "/vehicles":
                     user = self.path.replace("/vehicles/", "")
-                    if user not in [u["username"] for u in users]:
+                    if user not in [u.username for u in users]:
                         self.send_response(404)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()

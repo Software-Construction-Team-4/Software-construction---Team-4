@@ -1,6 +1,7 @@
 import json
 import hashlib
 import uuid
+from MobyPark.db.users import User
 from storage_utils import load_json, save_user_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
 
@@ -11,20 +12,16 @@ def do_POST(self):
             password = data.get("password")
             name = data.get("name")
             hashed_password = hashlib.md5(password.encode()).hexdigest()
-            users = load_json('data/users.json')
-            for user in users:
-                if username == user['username']:
-                    self.send_response(200)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Username already taken")
-                    return
-            users.append({
-                'username': username,
-                'password': hashed_password,
-                'name': name
-            })
-            save_user_data(users)
+            existing_user = User.get_by_username(username)
+            if existing_user is not None:
+                self.send_response(400)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"Username already taken")
+                return
+
+            new_user = User(-1, username, hashed_password, name)
+            new_user.update()
             self.send_response(201)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -42,27 +39,24 @@ def do_POST(self):
                 self.wfile.write(b"Missing credentials")
                 return
             hashed_password = hashlib.md5(password.encode()).hexdigest()
-            users = load_json('data/users.json')
-            for user in users:
-                if user.get("username") == username:
-                    if user.get("password") == hashed_password:
-                        token = str(uuid.uuid4())
-                        add_session(token, user)
-                        self.send_response(200)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
-                        return
-                    else:
-                        self.send_response(401)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b"Invalid credentials")
-                        return
-            self.send_response(401)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"User not found")
+            user = User.get_by_username(username)
+            if (user is None):
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"User not found")
+            elif (user.password == hashed_password):
+                token = str(uuid.uuid4())
+                add_session(token, user)
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
+            else:
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"Invalid credentials")
 
 def do_PUT(self):
     if self.path == "/profile":
@@ -76,21 +70,20 @@ def do_PUT(self):
 
         session_user = get_session(token)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-        users = load_json('data/users.json')
+        new_username = data.get("username")
+        if User.get_by_username(new_username) is not None:
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Username is taken")
+            return
 
-        data["username"] = session_user["username"]
+        session_user.username = data.get("username")
 
         if data.get("password"):
-            data["password"] = hashlib.md5(data["password"].encode()).hexdigest()
-        else:
-            data["password"] = session_user["password"]
+            session_user.password = hashlib.md5(data["password"].encode()).hexdigest()
 
-        for user in users:
-            if session_user["username"] == user["username"] and session_user["password"] == user["password"]:
-                for key in data:
-                    user[key] = data[key]
-
-        save_user_data(users)
+        session_user.update()
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
