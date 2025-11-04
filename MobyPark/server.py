@@ -6,6 +6,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from session_manager import add_session, remove_session, get_session
 import session_calculator as sc
 
+
 class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/register":
@@ -109,20 +110,31 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif self.path.endswith("/history"):
             vid = self.path.split("/")[2]
             from storage_utils import load_json
-            token = self.headers.get('Authorization')
+
+            token = self.headers.get("Authorization")
             session_user = get_session(token)
+
+            if not session_user:
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"Unauthorized: Invalid or missing session token")
+                return
+
             vehicles = load_json("data/vehicles.json")
             uvehicles = {
                 v["id"]: v
                 for v in vehicles
                 if v.get("user_id") == session_user.get("user_id")
             }
+
             if vid not in uvehicles:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Not found!")
                 return
+
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -135,6 +147,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"Route not found")
             return
 
-server = HTTPServer(('localhost', 8000), RequestHandler)
+
+server = HTTPServer(("localhost", 8000), RequestHandler)
 print("Server running on http://localhost:8000")
 server.serve_forever()
