@@ -11,6 +11,7 @@ class UserRole(StrEnum):
     USER = "USER"
 
 class User:
+    TABLE = "users"
     CREATION_DATE_FORMAT: str = "%Y-%m-%d"
 
     def __init__(self, id: int, username: str, password: str, name: str, email: Optional[str] = None, phone: Optional[str] = None, role: Optional[UserRole] = UserRole.USER,
@@ -26,12 +27,22 @@ class User:
         self.birth_year = birth_year
         self.active = active
 
+    def update(self):
+        result = cursor.execute(f'''
+                                 INSERT INTO {User.TABLE} (username, password, name, email, phone, role, created_at, birth_year, active)
+                                 VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                 ON DUPLICATE KEY UPDATE
+                                 ''',
+                                 (self.username, self.password, self.name, self.email, self.phone, self.role, self.created_at, self.birth_year, self.active)
+                                 )
+        return User(*result)
+
     @staticmethod
     def get_by_id(id: int) -> Optional['User']:
-        result = cursor.fetchone("SELECT * FROM users WHERE id = ?", (id,))
+        result = cursor.fetchone(f"SELECT * FROM {User.TABLE} WHERE id = %s", (id,))
         return (result is not None) and User(*result) or None
 
     @staticmethod
     def get_by_username(username: str) -> Optional['User']:
-        result = cursor.fetchone("SELECT * FROM users WHERE LOWER(username) = ?", (username.lower(),))
+        result = cursor.fetchone(f"SELECT * FROM {User.TABLE} WHERE LOWER(username) = %s", (username.lower(),))
         return (result is not None) and User(*result) or None
