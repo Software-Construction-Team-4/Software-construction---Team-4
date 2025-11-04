@@ -46,3 +46,8 @@ class User:
     def get_by_username(username: str) -> Optional['User']:
         result = cursor.fetchone(f"SELECT * FROM {User.TABLE} WHERE LOWER(username) = %s", (username.lower(),))
         return (result is not None) and User(*result) or None
+
+    @staticmethod
+    def get_all_users() -> list['User']:
+        result = cursor.fetchall(f"SELECT * FROM {User.TABLE}")
+        return [User(*user) for user in result]
