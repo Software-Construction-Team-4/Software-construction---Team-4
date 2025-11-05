@@ -32,7 +32,15 @@ def do_GET(self):
     self.end_headers()
     self.wfile.write(b"Invalid route")
 
+
 def do_POST(self):
+    if self.path.strip("/") != "parking-lots":
+        self.send_response(404)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"Invalid route")
+        return
+
     content_length = int(self.headers.get("Content-Length", 0))
     post_data = self.rfile.read(content_length)
 
@@ -59,8 +67,8 @@ def do_POST(self):
     capacity = data["capacity"]
     tariff = data["tariff"]
 
-    daytariff = data.get("daytariff", 0)
     reserved = data.get("reserved", 0)
+    daytariff = data.get("daytariff", 0)
     latitude = data.get("latitude", None)
     longitude = data.get("longitude", None)
     status = data.get("status", "open")
@@ -74,13 +82,13 @@ def do_POST(self):
         cursor.execute(
             """
             INSERT INTO parking_lots
-            (name, location, address, capacity, reserved, tariff, daytariff, created_at, latitude, longitude, status, closed_reason, closed_date)
+            (name, location, address, capacity, reserved, tariff, daytariff,
+             created_at, latitude, longitude, status, closed_reason, closed_date)
             VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s)
             """,
             (
-                name, location, address, capacity, reserved,
-                tariff, daytariff, latitude, longitude,
-                status, closed_reason, closed_date
+                name, location, address, capacity, reserved, tariff, daytariff,
+                latitude, longitude, status, closed_reason, closed_date
             ),
         )
         conn.commit()
@@ -99,6 +107,77 @@ def do_POST(self):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+
+
+def do_PUT(self):
+    parts = self.path.strip("/").split("/")
+    if len(parts) == 2 and parts[0] == "parking-lots":
+        lot_id = parts[1]
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        put_data = self.rfile.read(content_length)
+        try:
+            data = json.loads(put_data.decode("utf-8"))
+        except json.JSONDecodeError:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Invalid JSON format")
+            return
+
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+
+            cursor.execute("SELECT * FROM parking_lots WHERE id = %s", (lot_id,))
+            lot = cursor.fetchone()
+            if not lot:
+                self.send_response(404)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"Parking lot not found")
+                return
+
+            allowed_fields = [
+                "name", "location", "address", "capacity", "reserved",
+                "tariff", "daytariff", "latitude", "longitude",
+                "status", "closed_reason", "closed_date"
+            ]
+
+            updates = []
+            values = []
+            for key, value in data.items():
+                if key in allowed_fields:
+                    updates.append(f"{key} = %s")
+                    values.append(value)
+
+            if not updates:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b"No valid fields to update")
+                return
+
+            values.append(lot_id)
+            query = f"UPDATE parking_lots SET {', '.join(updates)} WHERE id = %s"
+            cursor.execute(query, tuple(values))
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"message": "Parking lot updated"}).encode("utf-8"))
+
+        except Exception as e:
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+        return
+
 
 def do_DELETE(self):
     parts = self.path.strip("/").split("/")
