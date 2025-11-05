@@ -26,3 +26,51 @@ def load_parking_lot_by_id(lid):
     cursor.close()
     conn.close()
     return row
+
+def start_parking_session(parking_lot_id, licenseplate, user):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO parking_sessions (parking_lot_id, licenseplate, started, stopped, user, duration_minutes, cost, payment_status) "
+        "VALUES (%s, %s, NOW(), NULL, %s, 0, 0, 'pending')",
+        (parking_lot_id, licenseplate, user)
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    cursor.close()
+    conn.close()
+    return new_id
+
+def stop_parking_session(parking_lot_id, licenseplate):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT * FROM parking_sessions WHERE parking_lot_id=%s AND licenseplate=%s AND stopped IS NULL",
+        (parking_lot_id, licenseplate)
+    )
+    session = cursor.fetchone()
+    if not session:
+        cursor.close()
+        conn.close()
+        return None
+
+    cursor.execute(
+        "SELECT tariff FROM parking_lots WHERE id=%s",
+        (parking_lot_id,)
+    )
+    lot = cursor.fetchone()
+    tariff = lot['tariff'] if lot else 0
+
+    cursor.execute(
+        "UPDATE parking_sessions SET stopped=NOW(), duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()), "
+        "cost=TIMESTAMPDIFF(MINUTE, started, NOW())*%s, payment_status='unpaid' "
+        "WHERE id=%s",
+        (tariff / 60, session['id'])
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return session
+
