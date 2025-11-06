@@ -11,7 +11,7 @@ def do_POST(self):
         self.end_headers()
         self.wfile.write(b"Unauthorized: Invalid or missing session token")
         return
-    
+
     session_user = get_session(token)
     if 'sessions' in self.path:
         lid = self.path.split("/")[2]
