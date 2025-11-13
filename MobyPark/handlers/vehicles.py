@@ -108,15 +108,10 @@ def do_GET(self):
             session_user = get_session(token)
 
             if self.path.endswith("/reservations"):
-                vid = self.path.split("/")[2]
-                vehicles = load_json("data/vehicles.json")
+                vid = int(self.path.split("/")[2])
+                vehicle = next((vehicle for vehicle in Vehicle.get_all_user_vehicles(session_user.id) if (vehicle.id == vid)), None)
 
-                uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("id")
-            }
-                if vid not in uvehicles:
+                if vehicle is None:
                     self.send_response(404)
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
@@ -125,7 +120,7 @@ def do_GET(self):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps([]).encode("utf-8"))
+                self.wfile.write(json.dumps(vehicle, default=str).encode("utf-8"))
                 return
 
 
