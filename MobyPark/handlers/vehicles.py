@@ -8,11 +8,11 @@ def do_POST(self):
         token = self.headers.get('Authorization')
         if not token or not get_session(token):
             self.send_response(401)
-            self.send_header("Content-type", "application/json")
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
-        
+
         session_user = get_session(token)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
         vehicles = load_json("data/vehicles.json")
@@ -22,7 +22,7 @@ def do_POST(self):
         missing_fields = [field for field in required_fields if field not in data or not data[field]]
         if missing_fields:
             self.send_response(400)
-            self.send_header("Content-type", "application/json")
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(
                 json.dumps({"error": "Missing required fields", "fields": missing_fields}).encode("utf-8")
@@ -34,7 +34,7 @@ def do_POST(self):
         lid = data["license_plate"].replace("-", "")
         if lid in uvehicles:
             self.send_response(409)
-            self.send_header("Content-type", "application/json")
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(
                 json.dumps({"error": "Vehicle already exists", "vehicle": uvehicles[lid]}).encode("utf-8")
@@ -62,56 +62,6 @@ def do_POST(self):
         self.end_headers()
         self.wfile.write(json.dumps({"status": "Success", "vehicle": new_vehicle}).encode("utf-8"))
 
-    elif self.path.startswith("/vehicles/"):
-            token = self.headers.get('Authorization')
-            print(token)
-            if not token or not get_session(token):
-                print("1")
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-        
-        
-            print("2")
-            session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            vehicles = load_json("data/vehicles.json")
-            print(session_user)
-            print(vehicles[1])
-
-
-            for field in ["license_plate","make","model","color","year"]:
-                if not field in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                    return
-
-            uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("id")
-                
-            }
-
-            print(uvehicles)
-
-            lid = int(self.path.replace("/vehicles/", "").replace("/entry", ""))
-            if lid not in uvehicles:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Vehicle does not exist", "data": lid}).encode("utf-8"))
-                return
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "Accepted", "vehicle": vehicles[session_user["username"]][lid]}).encode("utf-8"))
-            return
-
 def do_PUT(self):
     if self.path.startswith("/vehicles/"):
             token = self.headers.get('Authorization')
@@ -133,7 +83,7 @@ def do_PUT(self):
                 self.end_headers()
                 self.wfile.write(b"Vehicle not found")
                 return
-            
+
             for field in ["license_plate","make","model","color","year"]:
                 if not field in data:
                     self.send_response(401)
@@ -141,7 +91,7 @@ def do_PUT(self):
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
                 return
-        
+
             checkIdVehicle["license_plate"] = data["license_plate"]
             checkIdVehicle["make"] = data["make"]
             checkIdVehicle["model"] = data["model"]
@@ -166,7 +116,7 @@ def do_GET(self):
                 self.wfile.write(b"Unauthorized: Invalid or missing session token")
                 return
             session_user = get_session(token)
-            print(session_user)
+
             if self.path.endswith("/reservations"):
                 vid = self.path.split("/")[2]
                 vehicles = load_json("data/vehicles.json")
@@ -176,7 +126,6 @@ def do_GET(self):
                 for v in vehicles
                 if v.get("user_id") == session_user.get("id")
             }
-                print(uvehicles)
                 if vid not in uvehicles:
                     self.send_response(404)
                     self.send_header("Content-type", "application/json")
