@@ -34,7 +34,7 @@ def do_POST(self):
         lid = data["license_plate"].replace("-", "")
 
         user_vehicles = Vehicle.get_all_user_vehicles(session_user.id)
-        existing_vehicle = next(vehicle for vehicle in user_vehicles if (vehicle.license_plate == lid))
+        existing_vehicle = next((vehicle for vehicle in user_vehicles if (vehicle.license_plate == lid)), None)
 
         if existing_vehicle is not None:
             self.send_response(409)
