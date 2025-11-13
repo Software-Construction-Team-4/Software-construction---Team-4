@@ -1,7 +1,8 @@
 import json
+
 from MobyPark.DataAccesLayer.database_utils_parking_lots import get_db_connection, load_parking_lot_data, load_parking_lot_by_id
 from datetime import datetime
-from storage_utils import load_json, save_data, load_parking_lot_data, save_parking_lot_data # pyright: ignore[reportUnknownVariableType]
+from storage_utils import load_json, save_data, load_parking_lot_data, save_parking_lot_data
 from session_manager import get_session
 
 def do_POST(self):

@@ -7,8 +7,8 @@ def get_db_connection():
         connection = mysql.connector.connect(
             host="145.24.237.71",
             port=8001,
-            user="root",
-            password="Qqq2007!Qqq2007!",
+            user="vscode",
+            password="StrongPassword123!",
             database="mobypark"
         )
         return connection

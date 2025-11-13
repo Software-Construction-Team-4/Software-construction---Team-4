@@ -6,7 +6,7 @@ def get_db_connection():
         host="145.24.237.71",
         port=8001,
         user="vscode",
-        password="StrongPassword123!!",
+        password="StrongPassword123!",
         database="mobypark"
     )
 
