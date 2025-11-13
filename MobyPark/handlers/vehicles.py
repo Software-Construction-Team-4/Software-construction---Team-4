@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from MobyPark.db.vehicle import Vehicle
 from db_utils_vehicles import load_json, save_data# pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 
@@ -15,7 +16,6 @@ def do_POST(self):
 
         session_user = get_session(token)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-        vehicles = load_json("data/vehicles.json")
 
         required_fields = ["license_plate", "make", "model", "color", "year"]
 
@@ -30,32 +30,23 @@ def do_POST(self):
             return
 
         # Check if vehicle already exists for this user
-        uvehicles = {v["license_plate"].replace("-", ""): v for v in vehicles if v["user_id"] == session_user["id"]}
+
         lid = data["license_plate"].replace("-", "")
-        if lid in uvehicles:
+
+        user_vehicles = Vehicle.get_all_user_vehicles(session_user.id)
+        existing_vehicle = next(vehicle for vehicle in user_vehicles if (vehicle.license_plate == lid))
+
+        if existing_vehicle is not None:
             self.send_response(409)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(
-                json.dumps({"error": "Vehicle already exists", "vehicle": uvehicles[lid]}).encode("utf-8")
+                json.dumps({"error": "Vehicle already exists", "vehicle": existing_vehicle}).encode("utf-8")
             )
             return
 
-
-        new_vehicle = {
-            "id": max([v["id"] for v in vehicles] + [0]) + 1,
-            "user_id": session_user["id"],
-            "license_plate": data["license_plate"],
-            "make": data["make"],
-            "model": data["model"],
-            "color": data["color"],
-            "year": int(data["year"]),
-            "created_at": datetime.now().strftime("%Y-%m-%d"),
-            "updated_at": datetime.now().strftime("%Y-%m-%d")
-        }
-
-        vehicles.append(new_vehicle)
-        save_data("data/vehicles.json", vehicles)
+        new_vehicle = Vehicle(-1, session_user.id, lid, data["make"], data["model"], data["color"], int(data["year"]))
+        new_vehicle.update()
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")
