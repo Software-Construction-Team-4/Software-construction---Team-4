@@ -4,13 +4,8 @@ def get_db_connection():
     return mysql.connector.connect(
         host="145.24.237.71",
         port=8001,
-<<<<<<<< HEAD:MobyPark/DataAccesLayer/database_utils_parking_lots.py
-        user="root",
-        password="Des2106Sta123!",
-========
         user="vscode",
         password="StrongPassword123!",
->>>>>>>> origin/database-working-and-all-db-code-fixed:MobyPark/db_utils_parkingLots.py
         database="mobypark"
     )
 
