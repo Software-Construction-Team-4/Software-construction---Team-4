@@ -49,6 +49,10 @@ class Vehicle:
         db.commit()
         return Vehicle.get_by_id(cursor.lastrowid) # get the updated vehicle, now with an id if newly created
 
+    def delete(self) -> None:
+        cursor.execute(f"DELETE FROM {Vehicle.TABLE} WHERE id = %s", (self.id,))
+        db.commit()
+
     @staticmethod
     def get_by_id(id: int) -> Optional['Vehicle']:
         result = cursor.fetchone(f"SELECT * FROM {Vehicle.TABLE} WHERE id = %s", (id,))
