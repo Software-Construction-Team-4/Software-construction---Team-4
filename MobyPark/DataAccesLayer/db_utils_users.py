@@ -3,7 +3,7 @@ import mysql.connector
 from enum import StrEnum
 from datetime import datetime
 
-db = mysql.connector.connect(host="localhost", user="root", password="admin", database="mobypark")
+db = mysql.connector.connect(host="145.24.237.71", port = "8001",user="root", password="admin", database="mobypark")
 cursor = db.cursor()
 
 class UserRole(StrEnum):

@@ -1,7 +1,7 @@
 import json
 import hashlib
 import uuid
-from MobyPark.db.users import User
+from MobyPark.DataAccesLayer.db_utils_users import User
 from storage_utils import load_json, save_user_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
 
