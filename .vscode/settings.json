@@ -11,7 +11,7 @@
             "ssh": "Enabled",
             "previewLimit": 50,
             "server": "127.0.0.1",
-            "port": 3306,
+            "port": 8001,
             "sshOptions": {
                 "port": 22,
                 "host": "145.24.237.71",
