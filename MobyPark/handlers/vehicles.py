@@ -127,7 +127,7 @@ def do_GET(self):
 
 def do_DELETE(self):
     if self.path.startswith("/vehicles/"):
-            lid = self.path.replace("/vehicles/", "")
+            lid = int(self.path.replace("/vehicles/", ""))
             if lid:
                 token = self.headers.get('Authorization')
                 if not token or not get_session(token):
@@ -138,20 +138,16 @@ def do_DELETE(self):
                     return
 
                 session_user = get_session(token)
-                vehicles = load_json("data/vehicles.json")
+                vehicle = next((vehicle for vehicle in Vehicle.get_all_user_vehicles(session_user.id) if (vehicle.id == lid)), None)
 
-                uvehicles = {v["id"]: v for v in vehicles if v.get("user_id") == session_user.get("id")}
-
-                if lid not in uvehicles:
+                if vehicle is None:
                     self.send_response(403)
                     self.send_header("Content-type", "application/json")
                     self.end_headers()
                     self.wfile.write(b"Vehicle not found!")
                     return
 
-                vehicles = [v for v in vehicles if v["id"] != lid]
-
-                save_data("data/vehicles.json", vehicles)
+                vehicle.delete()
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
