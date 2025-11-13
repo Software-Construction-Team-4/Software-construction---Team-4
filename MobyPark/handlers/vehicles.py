@@ -34,7 +34,7 @@ def do_POST(self):
         lid = data["license_plate"].replace("-", "")
 
         user_vehicles = Vehicle.get_all_user_vehicles(session_user.id)
-        existing_vehicle = next((vehicle for vehicle in user_vehicles if (vehicle.license_plate == lid)), None)
+        existing_vehicle = next((vehicle for vehicle in user_vehicles if (vehicle.license_plate.replace('-', '') == lid)), None)
 
         if existing_vehicle is not None:
             self.send_response(409)
@@ -45,7 +45,7 @@ def do_POST(self):
             )
             return
 
-        new_vehicle = Vehicle(-1, session_user.id, lid, data["make"], data["model"], data["color"], int(data["year"]))
+        new_vehicle = Vehicle(-1, session_user.id, data["license_plate"], data["make"], data["model"], data["color"], int(data["year"]))
         new_vehicle.update()
 
         self.send_response(201)
