@@ -2,8 +2,8 @@ import mysql.connector
 
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",
-        port=3306,
+        host="145.24.237.71",
+        port=8001,
         user="root",
         password="Des2106Sta123!",
         database="mobypark"
