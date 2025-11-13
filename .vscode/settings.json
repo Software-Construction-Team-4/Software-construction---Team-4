@@ -1,5 +1,28 @@
 {
     "python.analysis.extraPaths": [
         "./MobyPark/Payments"
+    ],
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Enabled",
+            "previewLimit": 50,
+            "server": "127.0.0.1",
+            "port": 3306,
+            "sshOptions": {
+                "port": 22,
+                "host": "145.24.237.71",
+                "username": "ubuntu-1100492",
+                "password": "Ran47dKN"
+            },
+            "driver": "MySQL",
+            "name": "MobyParkVM",
+            "database": "mobypark",
+            "username": "vscode",
+            "askForPassword": true
+        }
     ]
 }
