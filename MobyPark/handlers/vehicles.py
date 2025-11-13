@@ -62,13 +62,13 @@ def do_PUT(self):
                 self.end_headers()
                 self.wfile.write(b"Unauthorized: Invalid or missing session token")
                 return
-            session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-            vehicles = load_json("data/vehicles.json")
-            lid = self.path.replace("/vehicles/", "")
-            checkIdVehicle = next((v for v in vehicles if v.get("id") == int(lid)), None)
 
-            if checkIdVehicle is None:
+            data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+
+            lid = self.path.replace("/vehicles/", "")
+            vehicle = Vehicle.get_by_id(int(lid))
+
+            if vehicle is None:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
@@ -83,18 +83,17 @@ def do_PUT(self):
                     self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
                 return
 
-            checkIdVehicle["license_plate"] = data["license_plate"]
-            checkIdVehicle["make"] = data["make"]
-            checkIdVehicle["model"] = data["model"]
-            checkIdVehicle["color"] = data["color"]
-            checkIdVehicle["year"] = data["year"]
-            checkIdVehicle["updated_at"] = datetime.now().strftime("%Y-%m-%d")
+            vehicle.license_plate = data["license_plate"]
+            vehicle.make = data["make"]
+            vehicle.model = data["model"]
+            vehicle.color = data["color"]
+            vehicle.year = data["year"]
+            vehicle.update()
 
-            save_data("data/vehicles.json", vehicles)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "Updated", "vehicle": checkIdVehicle}, default=str).encode("utf-8"))
+            self.wfile.write(json.dumps({"status": "Updated", "vehicle": vehicle}, default=str).encode("utf-8"))
             return
 
 def do_GET(self):
