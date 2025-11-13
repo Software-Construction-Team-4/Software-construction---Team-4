@@ -63,12 +63,13 @@ def do_PUT(self):
                 self.wfile.write(b"Unauthorized: Invalid or missing session token")
                 return
 
+            session_user = get_session(token)
             data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
             lid = self.path.replace("/vehicles/", "")
             vehicle = Vehicle.get_by_id(int(lid))
 
-            if vehicle is None:
+            if (vehicle is None or vehicle.user_id != session_user.id):
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
