@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 from MobyPark.db.vehicle import Vehicle
-from db_utils_vehicles import load_json, save_data# pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 
 def do_POST(self):
