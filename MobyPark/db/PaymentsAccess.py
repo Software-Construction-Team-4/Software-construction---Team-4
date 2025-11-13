@@ -1,14 +1,16 @@
 from mysql.connector import Error
-from paymentsModel import PaymentsModel
+from MobyPark.DataModels.paymentsModel import PaymentsModel
 from database_utils import get_db_connection 
  
+
+
+conn = get_db_connection()
+cursor = conn.cursor(dictionary=True)
 
 class PaymentsDataAccess:
     
     def get_all_payments(self):
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments")
             rows = cursor.fetchall()
             
