@@ -1,53 +1,64 @@
-from typing import Optional
 import mysql.connector
-from enum import StrEnum
-from datetime import datetime
 
-db = mysql.connector.connect(host="145.24.237.71", port = "8001",user="root", password="admin", database="mobypark")
-cursor = db.cursor()
+def get_db_connection():
+    return mysql.connector.connect(
+        host="145.24.237.71",
+        port=8001,
+        user="vscode",
+        password="StrongPassword123!",
+        database="mobypark"
+    )
 
-class UserRole(StrEnum):
-    ADMIN = "ADMIN"
-    USER = "USER"
+# === LOAD USERS ===
+def load_users():
+    """Fetch all users from the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM users")
+        users = cursor.fetchall()
+        return users
+    except Exception as e:
+        print(f"Error loading users: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
-class User:
-    TABLE = "users"
-    CREATION_DATE_FORMAT: str = "%Y-%m-%d"
+# === SAVE SINGLE USER ===
+def save_user(user_data):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        sql = """
+        INSERT INTO users
+            (username, password, name, email, phone, role, created_at, birth_year, active)
+        VALUES
+            (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(sql, (
+            user_data.get("username"),
+            user_data.get("password"),
+            user_data.get("name"),
+            user_data.get("email"),
+            user_data.get("phone"),
+            user_data.get("role"),
+            user_data.get("created_at"),
+            user_data.get("birth_year"),
+            user_data.get("active")
+        ))
+        conn.commit()
+    except Exception as e:
+        print(f"Error saving user: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
-    def __init__(self, id: int, username: str, password: str, name: str, email: Optional[str] = None, phone: Optional[str] = None, role: Optional[UserRole] = UserRole.USER,
-                 created_at: str = datetime.now().strftime(CREATION_DATE_FORMAT), birth_year: Optional[int] = None, active: bool = True) -> 'User':
-        self.id = id
-        self.username = username
-        self.password = password
-        self.name = name
-        self.email = email
-        self.phone = phone
-        self.role = role
-        self.created_at = datetime.strptime(created_at, User.CREATION_DATE_FORMAT)
-        self.birth_year = birth_year
-        self.active = active
+# === SAVE MULTIPLE USERS ===
+def save_users(users_data):
+    """Save a list of user dictionaries."""
+    for user in users_data:
+        save_user(user)
 
-    def update(self) -> 'User':
-        result = cursor.execute(f'''
-                                 INSERT INTO {User.TABLE} (username, password, name, email, phone, role, created_at, birth_year, active)
-                                 VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                 ON DUPLICATE KEY UPDATE
-                                 ''',
-                                 (self.username, self.password, self.name, self.email, self.phone, self.role, self.created_at, self.birth_year, self.active)
-                                 )
-        return User(*result)
 
-    @staticmethod
-    def get_by_id(id: int) -> Optional['User']:
-        result = cursor.fetchone(f"SELECT * FROM {User.TABLE} WHERE id = %s", (id,))
-        return (result is not None) and User(*result) or None
 
-    @staticmethod
-    def get_by_username(username: str) -> Optional['User']:
-        result = cursor.fetchone(f"SELECT * FROM {User.TABLE} WHERE LOWER(username) = %s", (username.lower(),))
-        return (result is not None) and User(*result) or None
-
-    @staticmethod
-    def get_all_users() -> list['User']:
-        result = cursor.fetchall(f"SELECT * FROM {User.TABLE}")
-        return [User(*user) for user in result]
