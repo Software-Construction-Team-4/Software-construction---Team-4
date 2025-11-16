@@ -9,7 +9,6 @@ def get_db_connection():
         database="mobypark"
     )
 
-# === LOAD USERS ===
 def load_users():
     """Fetch all users from the database."""
     conn = get_db_connection()
@@ -25,15 +24,15 @@ def load_users():
         cursor.close()
         conn.close()
 
-# === SAVE SINGLE USER ===
+
 def save_user(user_data):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         sql = """
-        INSERT INTO users
+        INSERT INTO users 
             (username, password, name, email, phone, role, created_at, birth_year, active)
-        VALUES
+        VALUES 
             (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         cursor.execute(sql, (
@@ -54,11 +53,47 @@ def save_user(user_data):
         cursor.close()
         conn.close()
 
-# === SAVE MULTIPLE USERS ===
-def save_users(users_data):
-    """Save a list of user dictionaries."""
-    for user in users_data:
-        save_user(user)
 
+def update_user_data(user):
+    if "id" not in user:
+        raise ValueError("User must have an 'id' to update")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    db_columns = [
+        "username",
+        "password",
+        "name",
+        "email",
+        "phone",
+        "role",
+        "birth_year",
+        "active"
+    ]
+
+    updates = {col: user[col] for col in db_columns if col in user}
+
+    if not updates:
+        print(f"No fields to update for user {user['id']}")
+        cursor.close()
+        conn.close()
+        return
+
+    set_clause = ", ".join(f"{col}=%s" for col in updates.keys())
+    sql = f"UPDATE users SET {set_clause} WHERE id=%s"
+
+    values = list(updates.values())
+    values.append(user["id"])
+
+    try:
+        cursor.execute(sql, values)
+        conn.commit()
+        print(f"User {user['id']} updated successfully!")
+    except mysql.connector.Error as e:
+        print("Error updating user:", e)
+    finally:
+        cursor.close()
+        conn.close()
 
 
