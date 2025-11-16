@@ -2,10 +2,8 @@ import json
 import hashlib
 import uuid
 from datetime import date
-from DataAccesLayer.db_utils_users import load_users, save_user
-from session_manager import add_session, remove_session, get_session # pyright: ignore[reportUnknownVariableType]
-
-
+from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
+from session_manager import add_session, remove_session, get_session
 
 def do_POST(self):
     if self.path == "/register":
@@ -17,13 +15,10 @@ def do_POST(self):
         phone = data.get("phone")
         birth_year = data.get("birth_year")
 
-
         hashed_password = hashlib.md5(password.encode()).hexdigest()
-
 
         # was: users = load_json('data/users.json')
         users = load_users()
-
 
         for user in users:
             if username == user['username']:
@@ -32,7 +27,6 @@ def do_POST(self):
                 self.end_headers()
                 self.wfile.write(b"Username already taken")
                 return
-
 
         # was: users.append(...)
         users.append({
@@ -47,10 +41,8 @@ def do_POST(self):
             "active": True
         })
 
-
         # was: save_user_data(users)
         save_user(users[-1])
-
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")
@@ -93,42 +85,63 @@ def do_POST(self):
             self.wfile.write(b"User not found")
 
 
-# def do_PUT(self):
-#     if self.path == "/profile":
-#         token = self.headers.get('Authorization')
-#         if not token or not get_session(token):
-#             self.send_response(401)
-#             self.send_header("Content-type", "application/json")
-#             self.end_headers()
-#             self.wfile.write(b"Unauthorized: Invalid or missing session token")
-#             return
+def do_PUT(self):
+    if self.path == "/profile":
+        token = self.headers.get('Authorization')
+        if not token or not get_session(token):
+            self.send_response(401)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Unauthorized: Invalid or missing session token")
+            return
 
+        # session_user = get_session(token)
+        content_length = int(self.headers.get("Content-Length", -1))
+        if content_length <= 0:
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Empty request body")
+            return
 
-#         session_user = get_session(token)
-#         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-#         users = load_json('data/users.json')
+        data = json.loads(self.rfile.read(content_length))
+        users = load_users()
 
+        foundUser = next((u for u in users if str(u["id"]) == str(data["id"])), None)
+        if foundUser is None:
+            self.send_response(404)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"User not found")
+            return
 
-#         data["username"] = session_user["username"]
+        updatable_fields = [
+            "username",
+            "password",
+            "name",
+            "email",
+            "phone",
+            "birth_year",
+            "active"
+        ]
 
+        for field in updatable_fields:
+            if field in data:
+                if field == "password":
+                    data[field] = hashlib.md5(data[field].encode()).hexdigest()
 
-#         if data.get("password"):
-#             data["password"] = hashlib.md5(data["password"].encode()).hexdigest()
-#         else:
-#             data["password"] = session_user["password"]
+                foundUser[field] = data[field]
 
+        update_user_data(foundUser)
 
-#         for user in users:
-#             if session_user["username"] == user["username"] and session_user["password"] == user["password"]:
-#                 for key in data:
-#                     user[key] = data[key]
-
-
-#         save_user_data(users)
-#         self.send_response(200)
-#         self.send_header("Content-type", "application/json")
-#         self.end_headers()
-#         self.wfile.write(b"User updated successfully")
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "status": "Updated",
+            "user": foundUser
+        }, default=str).encode("utf-8"))
+        return
 
 
 def do_GET(self):
@@ -161,16 +174,4 @@ def do_GET(self):
             self.end_headers()
             self.wfile.write(b"Invalid session token")
     return
-
-
-def do_DELETE(self):
-    return
-
-
-
-
-
-
-
-
 
