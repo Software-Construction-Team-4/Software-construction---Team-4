@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
-from MobyPark.db.vehicle import Vehicle
+from MobyPark.DataAccesLayer.vehicle_access import VehicleAccess
+from MobyPark.DataModels.vehicle_model import VehicleModel
 from session_manager import get_session
 
 def do_POST(self):
@@ -32,7 +33,7 @@ def do_POST(self):
 
         lid = data["license_plate"].replace("-", "")
 
-        user_vehicles = Vehicle.get_all_user_vehicles(session_user.id)
+        user_vehicles = VehicleAccess.get_all_user_vehicles(session_user.id)
         existing_vehicle = next((vehicle for vehicle in user_vehicles if (vehicle.license_plate.replace('-', '') == lid)), None)
 
         if existing_vehicle is not None:
@@ -44,8 +45,8 @@ def do_POST(self):
             )
             return
 
-        new_vehicle = Vehicle(-1, session_user.id, data["license_plate"], data["make"], data["model"], data["color"], int(data["year"]))
-        new_vehicle.update()
+        new_vehicle = VehicleModel(-1, session_user.id, data["license_plate"], data["make"], data["model"], data["color"], int(data["year"]))
+        VehicleAccess.update(new_vehicle)
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")
@@ -66,7 +67,7 @@ def do_PUT(self):
             data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
             lid = self.path.replace("/vehicles/", "")
-            vehicle = Vehicle.get_by_id(int(lid))
+            vehicle = VehicleAccess.get_by_id(int(lid))
 
             if (vehicle is None or vehicle.user_id != session_user.id):
                 self.send_response(404)
@@ -88,7 +89,7 @@ def do_PUT(self):
             vehicle.model = data["model"]
             vehicle.color = data["color"]
             vehicle.year = data["year"]
-            vehicle.update()
+            VehicleAccess.update(vehicle)
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -109,7 +110,7 @@ def do_GET(self):
 
             if self.path.endswith("/reservations"):
                 vid = int(self.path.split("/")[2])
-                vehicle = next((vehicle for vehicle in Vehicle.get_all_user_vehicles(session_user.id) if (vehicle.id == vid)), None)
+                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user.id) if (vehicle.id == vid)), None)
 
                 if vehicle is None:
                     self.send_response(404)
@@ -137,7 +138,7 @@ def do_DELETE(self):
                     return
 
                 session_user = get_session(token)
-                vehicle = next((vehicle for vehicle in Vehicle.get_all_user_vehicles(session_user.id) if (vehicle.id == lid)), None)
+                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user.id) if (vehicle.id == lid)), None)
 
                 if vehicle is None:
                     self.send_response(403)
@@ -146,7 +147,7 @@ def do_DELETE(self):
                     self.wfile.write(b"Vehicle not found!")
                     return
 
-                vehicle.delete()
+                VehicleAccess.delete(vehicle)
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
