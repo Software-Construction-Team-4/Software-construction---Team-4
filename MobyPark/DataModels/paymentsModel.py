@@ -17,3 +17,23 @@ class PaymentsModel:
         self.payment_method = payment_method
         self.transaction_hash = transaction_hash
 
+    def to_tuple(self):
+        return (
+            self.amount,
+            self.completed_at,
+            self.created_at,
+            self.payment_hash,
+            self.initiator,
+            self.parking_lot_id,
+            self.session_id,
+            self.bank,
+            self.transaction_date,
+            self.issuer_code,
+            self.payment_method,
+            self.transaction_hash,
+        )
+
+    def to_update_tuple(self):
+        return self.to_tuple() + (self.id,)
+
+
