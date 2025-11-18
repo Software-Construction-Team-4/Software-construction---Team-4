@@ -1,9 +1,18 @@
 import json
-from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id, save_parking_lot, update_parking_lot, delete_parking_lot
-from session_manager import get_session
+from DataAccesLayer.db_utils_parkingLots import (
+    load_parking_lots,
+    load_parking_lot_by_id,
+    save_parking_lot,
+    update_parking_lot,
+    delete_parking_lot
+)
+from . import parkingSessions
 
 def do_GET(self):
     parts = self.path.strip("/").split("/")
+    if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
+        return parkingSessions.do_GET(self)
+
     if parts[0] == "parking-lots":
         if len(parts) == 1:
             lots = load_parking_lots()
@@ -25,12 +34,17 @@ def do_GET(self):
                 self.end_headers()
                 self.wfile.write(b"Not found")
             return
+
     self.send_response(404)
     self.send_header("Content-Type", "application/json")
     self.end_headers()
     self.wfile.write(b"Invalid route")
 
 def do_POST(self):
+    parts = self.path.strip("/").split("/")
+    if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
+        return parkingSessions.do_POST(self)
+
     if self.path == "/parking-lots":
         content_length = int(self.headers.get("Content-Length", 0))
         data = json.loads(self.rfile.read(content_length))
@@ -40,6 +54,7 @@ def do_POST(self):
         self.end_headers()
         self.wfile.write(json.dumps({"id": new_id}).encode("utf-8"))
         return
+
     self.send_response(404)
     self.send_header("Content-Type", "application/json")
     self.end_headers()
@@ -56,6 +71,7 @@ def do_PUT(self):
         self.end_headers()
         self.wfile.write(b"Updated")
         return
+
     self.send_response(404)
     self.send_header("Content-Type", "application/json")
     self.end_headers()
@@ -70,6 +86,7 @@ def do_DELETE(self):
         self.end_headers()
         self.wfile.write(b"Deleted")
         return
+
     self.send_response(404)
     self.send_header("Content-Type", "application/json")
     self.end_headers()
