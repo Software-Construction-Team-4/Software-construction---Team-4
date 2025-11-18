@@ -35,7 +35,7 @@ def do_POST(self):
             "name": name,
             "email": email,
             "phone": phone,
-            "role": "ADMIN",
+            "role": "USER",
             "created_at": date.today().isoformat(),
             "birth_year": birth_year,
             "active": True

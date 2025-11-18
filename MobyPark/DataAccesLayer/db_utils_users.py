@@ -9,6 +9,8 @@ def get_db_connection():
         database="mobypark"
     )
 
+
+
 def load_users():
     """Fetch all users from the database."""
     conn = get_db_connection()

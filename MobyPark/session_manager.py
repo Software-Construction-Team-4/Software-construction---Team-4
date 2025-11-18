@@ -8,7 +8,8 @@ def add_session(token, user):
     # Ensure we store only safe fields
     sessions[token] = {
         "username": user.get("username"),
-        "user_id": user.get("id") or user.get("user_id")
+        "user_id": user.get("id") or user.get("user_id"),
+        "role": user.get("role")
     }
 
 def remove_session(token):
