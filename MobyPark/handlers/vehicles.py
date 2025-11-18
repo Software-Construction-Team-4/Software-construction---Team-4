@@ -33,7 +33,7 @@ def do_POST(self):
 
         lid = data["license_plate"].replace("-", "")
 
-        user_vehicles = VehicleAccess.get_all_user_vehicles(session_user.id)
+        user_vehicles = VehicleAccess.get_all_user_vehicles(session_user["id"])
         existing_vehicle = next((vehicle for vehicle in user_vehicles if (vehicle.license_plate.replace('-', '') == lid)), None)
 
         if existing_vehicle is not None:
@@ -45,7 +45,7 @@ def do_POST(self):
             )
             return
 
-        new_vehicle = VehicleModel(-1, session_user.id, data["license_plate"], data["make"], data["model"], data["color"], int(data["year"]))
+        new_vehicle = VehicleModel(-1, session_user["id"], data["license_plate"], data["make"], data["model"], data["color"], int(data["year"]))
         VehicleAccess.update(new_vehicle)
 
         self.send_response(201)
@@ -69,7 +69,7 @@ def do_PUT(self):
             lid = self.path.replace("/vehicles/", "")
             vehicle = VehicleAccess.get_by_id(int(lid))
 
-            if (vehicle is None or vehicle.user_id != session_user.id):
+            if (vehicle is None or vehicle.user_id != session_user["id"]):
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
@@ -110,7 +110,7 @@ def do_GET(self):
 
             if self.path.endswith("/reservations"):
                 vid = int(self.path.split("/")[2])
-                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user.id) if (vehicle.id == vid)), None)
+                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user["id"]) if (vehicle.id == vid)), None)
 
                 if vehicle is None:
                     self.send_response(404)
@@ -138,7 +138,7 @@ def do_DELETE(self):
                     return
 
                 session_user = get_session(token)
-                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user.id) if (vehicle.id == lid)), None)
+                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user["id"]) if (vehicle.id == lid)), None)
 
                 if vehicle is None:
                     self.send_response(403)
