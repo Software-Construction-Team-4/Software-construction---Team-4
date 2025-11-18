@@ -6,10 +6,10 @@ from DataModels.vehicle_model import VehicleModel
 
 # TODO place this in a gitignored .env file
 db = mysql.connector.connect(
-    host="127.0.0.1",
-    port=3306,
+    host="145.24.237.71",
+    port=8001,
     user="vscode",
-    password="StrongPassword123!!",
+    password="StrongPassword123!",
     database="mobypark"
 )
 cursor = db.cursor()
