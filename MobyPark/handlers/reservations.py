@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from MobyPark.DataAccesLayer.db_utils_reservations import load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation  # pyright: ignore[reportUnknownVariableType]
+from DataAccesLayer.db_utils_reservations import load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation  # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 
 def do_POST(self):
@@ -87,15 +87,28 @@ def do_PUT(self):
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
                     return
-            if 'ADMIN' == session_user.get('role'):
-                if not "user_id" in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": "user_id"}).encode("utf-8"))
-                    return
-            else:
-                data["user_id"] = "6688"  #(hard coded moet uiteindelijk verbeterd worden)
+            # if 'ADMIN' == session_user.get('role'):
+            #     if not "user_id" in data:
+            #         self.send_response(401)
+            #         self.send_header("Content-type", "application/json")
+            #         self.end_headers()
+            #         self.wfile.write(json.dumps({"error": "Require field missing", "field": "user_id"}).encode("utf-8"))
+            #         return
+            # else:
+            #     data["user_id"] = session_user.get('id')  #(hard coded moet uiteindelijk verbeterd worden)
+
+            if session_user.get('role') != 'ADMIN' and str(foundRes.get("user_id")) != str(session_user.get('user_id')):
+                        self.send_response(403)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        message = {
+                            "error": "Access denied",
+                            "session_role": session_user.get("role"),
+                            "session_user_id": session_user.get('user_id'),
+                            "reservation_user_id": foundRes.get("user_id")
+                        }
+                        self.wfile.write(json.dumps(message).encode("utf-8"))
+                        return
 
             foundRes["user_id"] = data["user_id"]
             foundRes["parking_lot_id"] = data["parking_lot_id"]
@@ -122,7 +135,7 @@ def do_GET(self):
             rid = self.path.replace("/reservations/", "").strip("/")
 
             if rid:
-                reservation = next((r for r in reservations if str(r.get("id")) == rid), None)
+                reservation = next((r for r in reservations if str(r["id"]) == str(rid)), None)
 
                 if reservation:
                     token = self.headers.get('Authorization')
@@ -135,14 +148,14 @@ def do_GET(self):
 
                     session_user = get_session(token)
 
-                    if not (session_user.get("role") == "null" or "6688" == str(reservation.get("user_id"))): #(this is hard coded can only be fixed if user is converted to database functionality)
+                    if session_user.get("role") != "ADMIN" and str(session_user.get('user_id')) != str(reservation.get("user_id")): #(this is hard coded can only be fixed if user is converted to database functionality)
                         self.send_response(403)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
                         message = {
                             "error": "Access denied",
                             "session_role": session_user.get("role"),
-                            "session_user_id": session_user.get("id"),
+                            "session_user_id": session_user.get('user_id'),
                             "reservation_user_id": reservation.get("user_id")
                         }
                         self.wfile.write(json.dumps(message).encode("utf-8"))
