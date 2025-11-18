@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 import mysql.connector
 
-from MobyPark.DataModels.vehicle_model import VehicleModel
+from DataModels.vehicle_model import VehicleModel
 
 # TODO place this in a gitignored .env file
 db = mysql.connector.connect(
