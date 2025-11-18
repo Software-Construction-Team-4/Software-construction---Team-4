@@ -1,7 +1,7 @@
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from session_manager import get_session
-import session_calculator as sc
+
 
 
 class RequestHandler(BaseHTTPRequestHandler):
