@@ -1,9 +1,6 @@
 import json
-import hashlib
-import uuid
-from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from session_manager import add_session, remove_session, get_session
+from session_manager import get_session
 import session_calculator as sc
 
 
