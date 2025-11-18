@@ -46,15 +46,18 @@ class VehicleAccess:
 
     @staticmethod
     def get_by_id(id: int) -> Optional['VehicleModel']:
-        result = cursor.fetchone(f"SELECT * FROM {VehicleAccess.TABLE} WHERE id = %s", (id,))
+        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE id = %s", (id,))
+        result = cursor.fetchone()
         return (result is not None) and VehicleModel(*result) or None
 
     @staticmethod
     def get_all_vehicles() -> list['VehicleModel']:
-        result = cursor.fetchall(f"SELECT * FROM {VehicleAccess.TABLE}")
+        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE}")
+        result = cursor.fetchall()
         return [VehicleModel(*vehicle) for vehicle in result]
 
     @staticmethod
     def get_all_user_vehicles(user_id: int) -> list['VehicleModel']:
-        result = cursor.fetchall(f"SELECT * FROM {VehicleAccess.TABLE} WHERE user_id = %s", (user_id,))
+        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE user_id = %s", (user_id,))
+        result = cursor.fetchall()
         return [VehicleModel(*vehicle) for vehicle in result]
