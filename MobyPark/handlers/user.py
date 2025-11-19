@@ -70,7 +70,7 @@ def do_POST(self):
                         self.send_response(200)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
-                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
+                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token, "user_id": user.id}).encode('utf-8'))
                         return
                     else:
                         self.send_response(401)
@@ -144,10 +144,7 @@ def do_PUT(self):
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({
-            "status": "Updated",
-            "user": vars(foundUser)
-        }, default=str).encode("utf-8"))
+        self.wfile.write(b"User updated successfully")
         return
 
 
