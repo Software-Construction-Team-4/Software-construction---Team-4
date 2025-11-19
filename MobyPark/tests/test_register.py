@@ -5,10 +5,14 @@
 
 # def test_register_endpoint():
 #     DummyUser ={
-#         "username": "sam123",
-#         "password": "s123",
-#         "name": "Sam"
+#         "username": "test",
+#         "password": "321",
+#         "name": "test Hashemy",
+#         "email": "test@gmail.com",
+#         "phone": "+31022293942",
+#         "birth_year": 2000
 #     }
+
         
 #     FirstResult = requests.post(f"{BASE_URL}/register", json = DummyUser)
 

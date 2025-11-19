@@ -6,18 +6,32 @@ BASE_URL = "http://localhost:8000"
 def test_login_endpoint():
     DummyUserOne ={
         "username": "sina",
-        "password": "321"
+        "password": "321",
+        "name": "Sina Hashemy",
+        "email": "sina@gmail.com",
+        "phone": "+31022293944",
+        "birth_year": 2000
     }
 
     DummyUserTwo ={
         "username": "sina",
-        "password": "3211"
+        "password": "3211",
+        "name": "Sina Hashemy",
+        "email": "sina@gmail.com",
+        "phone": "+31022293944",
+        "birth_year": 2000
     }
 
     DummyUserThree ={
         "username": "NietBestaand",
-        "password": "321"
+        "password": "321",
+        "name": "Sina Hashemy",
+        "email": "sina@gmail.com",
+        "phone": "+31022293944",
+        "birth_year": 2000
     }
+
+    requests.post(f"{BASE_URL}/register", json = DummyUserOne)
 
     FirstResult = requests.post(f"{BASE_URL}/login", json = DummyUserOne)
 
