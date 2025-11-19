@@ -1,5 +1,5 @@
 import json
-from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id, save_parking_lot, update_parking_lot, delete_parking_lot
+from DataAccessLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id, save_parking_lot, update_parking_lot, delete_parking_lot
 from session_manager import get_session
 
 def do_GET(self):

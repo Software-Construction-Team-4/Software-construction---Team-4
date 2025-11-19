@@ -3,6 +3,7 @@ from datetime import datetime
 from storage_utils import load_json, load_parking_lot_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 import session_calculator as sc
+from MobyPark.DataAccessLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -14,7 +15,7 @@ def do_POST(self):
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
 
-        payments = load_payment_data()
+        #payments = load_payment_data()
         session_user = get_session(token)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
@@ -54,7 +55,18 @@ def do_POST(self):
                     self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
                     return
 
-            payment = {
+            payment = PaymentsModel(amount= data["amount"],
+                                     created_at= datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+                                     payment_hash= data["transaction"] if data.get("transaction") else sc.generate_payment_hash,
+                                     initiator= session_user["username"],
+                                     parking_lot_id= data["parking_lot_id"],
+                                     session_id= None,
+                                     bank= data["bank"],
+                                     transaction_date= data["transaction_date"],
+                                     issuer_code= data["issuer_code"],
+                                     payment_method= data["payment_method"],
+                                     transaction_hash= sc.generate_transaction_validation_hash())
+            payment2 = {
                 "transaction": data.get("transaction"),
                 "amount": data.get("amount", 0),
                 "initiator": session_user["username"],
@@ -63,8 +75,9 @@ def do_POST(self):
                 "hash": sc.generate_transaction_validation_hash()
             }
 
-        payments.append(payment)
-        save_payment_data(payments)
+        PaymentsDataAccess.insert_payment(payment)
+        #payments.append(payment)
+        #save_payment_data(payments)
         self.send_response(201)
         self.send_header("Content-type", "application/json")
         self.end_headers()
@@ -82,11 +95,11 @@ def do_PUT(self):
             return
 
         pid = self.path.replace("/payments/", "")
-        payments = load_payment_data()
+        #payments = load_payment_data()
         session_user = get_session(token)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
-        payment = next((p for p in payments if p["transaction"] == pid), None)
+        payment = PaymentsDataAccess.get_by_id(pid)
         if payment:
             for field in ["t_data", "validation"]:
                 if field not in data:

@@ -32,11 +32,11 @@ def calculate_price(parkinglot, sid, data):
 
 
 
-def generate_payment_hash(sid, data):
+def generate_transaction_validation_hash(sid, data):
     return md5(str(sid + data["licenseplate"]).encode("utf-8")).hexdigest()
 
 
-def generate_transaction_validation_hash():
+def generate_payment_hash():
     return str(uuid.uuid4())
 
 def check_payment_amount(hash):
