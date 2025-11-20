@@ -1,10 +1,19 @@
 from datetime import datetime
-from storage_utils import load_payment_data
+from DataAccesLayer.PaymentsAccess import PaymentsDataAccess
 from hashlib import md5
 import math
 import uuid
-from datetime import datetime
-import math
+
+
+def load_payment_data():
+    payments = PaymentsDataAccess().get_all_payments()  # list[PaymentsModel]
+    return [
+        {
+            "transaction": p.transaction_hash,  # or p.payment_hash
+            "amount": float(p.amount),
+        }
+        for p in payments
+    ]
 
 def calculate_price(parkinglot, sid, data):
     price = 0
@@ -27,24 +36,24 @@ def calculate_price(parkinglot, sid, data):
         if price > float(parkinglot.get("daytariff", 999)):
             price = float(parkinglot.get("daytariff", 999))
 
-    return (price, hours, diff.days + 1 if end.date() > start.date() else 0)
-
-
+    return price, hours, diff.days + 1 if end.date() > start.date() else 0
 
 
 def generate_payment_hash(sid, data):
-    return md5(str(sid + data["licenseplate"]).encode("utf-8")).hexdigest()
+    raw = f"{sid}{data['licenseplate']}"
+    return md5(raw.encode("utf-8")).hexdigest()
 
 
 def generate_transaction_validation_hash():
     return str(uuid.uuid4())
 
-def check_payment_amount(hash):
+
+def check_payment_amount(tx_hash):
     payments = load_payment_data()
-    total = 0
+    total = 0.0
 
     for payment in payments:
-        if payment["transaction"] == hash:
+        if payment["transaction"] == tx_hash:
             total += payment["amount"]
 
     return total
