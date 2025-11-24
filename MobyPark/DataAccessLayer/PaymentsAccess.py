@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
-from MobyPark.DataModels.paymentsModel import PaymentsModel
+from DataModels.paymentsModel import PaymentsModel
 import datetime
 
 def get_db_connection():

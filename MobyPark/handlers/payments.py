@@ -3,7 +3,7 @@ from datetime import datetime
 from storage_utils import load_json, load_parking_lot_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 import session_calculator as sc
-from MobyPark.DataAccessLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
+from DataAccessLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -47,7 +47,7 @@ def do_POST(self):
                 "hash": sc.generate_transaction_validation_hash()
             }
         else:
-            for field in ["transaction", "amount"]:
+            for field in ["parking_lot_id", "amount", "license_plate"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
@@ -57,15 +57,15 @@ def do_POST(self):
 
             payment = PaymentsModel(amount= data["amount"],
                                      created_at= datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
-                                     payment_hash= data["transaction"] if data.get("transaction") else sc.generate_payment_hash,
+                                     payment_hash= data["transaction"] if data.get("transaction") else sc.generate_payment_hash(),
                                      initiator= session_user["username"],
                                      parking_lot_id= data["parking_lot_id"],
                                      session_id= None,
-                                     bank= data["bank"],
-                                     transaction_date= data["transaction_date"],
-                                     issuer_code= data["issuer_code"],
-                                     payment_method= data["payment_method"],
-                                     transaction_hash= sc.generate_transaction_validation_hash())
+                                     bank= data["bank"] if data.get("bank") else None,
+                                     transaction_date= data.get("transaction_date"),
+                                     issuer_code= data.get("issuer_code"),
+                                     payment_method= data.get("payment_method"),
+                                     transaction_hash= sc.generate_transaction_validation_hash(session_user["username"], str(datetime.now())))
             payment2 = {
                 "transaction": data.get("transaction"),
                 "amount": data.get("amount", 0),
