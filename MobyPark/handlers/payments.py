@@ -47,7 +47,7 @@ def do_POST(self):
                 "hash": sc.generate_transaction_validation_hash()
             }
         else:
-            for field in ["parking_lot_id", "amount", "license_plate"]:
+            for field in ["parking_lot_id", "amount", "session_id"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
@@ -56,32 +56,27 @@ def do_POST(self):
                     return
 
             payment = PaymentsModel(amount= data["amount"],
-                                     created_at= datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+                                     created_at= datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                     completed_at= None,
                                      payment_hash= data["transaction"] if data.get("transaction") else sc.generate_payment_hash(),
                                      initiator= session_user["username"],
                                      parking_lot_id= data["parking_lot_id"],
-                                     session_id= None,
+                                     session_id= data["session_id"],
                                      bank= data["bank"] if data.get("bank") else None,
                                      transaction_date= data.get("transaction_date"),
                                      issuer_code= data.get("issuer_code"),
                                      payment_method= data.get("payment_method"),
-                                     transaction_hash= sc.generate_transaction_validation_hash(session_user["username"], str(datetime.now())))
-            payment2 = {
-                "transaction": data.get("transaction"),
-                "amount": data.get("amount", 0),
-                "initiator": session_user["username"],
-                "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
-                "completed": False,
-                "hash": sc.generate_transaction_validation_hash()
-            }
+                                     transaction_hash= sc.generate_transaction_validation_hash(data["session_id"], data["license_plate"])
+                                     )
 
-        PaymentsDataAccess.insert_payment(payment)
+        data_access = PaymentsDataAccess()
+        data_access.insert_payment(payment)
         #payments.append(payment)
         #save_payment_data(payments)
         self.send_response(201)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"status": "Success", "payment": payment}).encode("utf-8"))
+        self.wfile.write(json.dumps({"status": "Success", "payment": payment.to_tuple()}).encode("utf-8"))
         return
 
 def do_PUT(self):
