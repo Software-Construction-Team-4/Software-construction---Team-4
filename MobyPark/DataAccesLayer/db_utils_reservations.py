@@ -1,12 +1,21 @@
 import mysql.connector
-import os
+from DataModels.reservationsModel import Reservations
+
+# def get_db_connection():
+#     return mysql.connector.connect(
+#         host="145.24.237.71",
+#         port=8001,
+#         user="vscode",
+#         password="StrongPassword123!",
+#         database="mobypark"
+#     )
 
 def get_db_connection():
     return mysql.connector.connect(
-        host="145.24.237.71",
-        port=8001,
-        user="vscode",
-        password="StrongPassword123!",
+        host="localhost",
+        port=3306,
+        user="root",
+        password="Kikkervis66!",
         database="mobypark"
     )
 
@@ -60,90 +69,78 @@ def load_reservation_data():
     return result
 
 
-def save_reservation_data(data):
-    if not data:
-        print("No data to insert.")
-        return
+def save_reservation_data(reservation: Reservations):
+    if not isinstance(reservation, Reservations):
+        raise TypeError("reservation must be of type Reservations")
+
+    data = reservation.to_dict()
+
+    data.pop("id", None)
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    db_columns = [
-        "user_id",
-        "parking_lot_id",
-        "vehicle_id",
-        "start_time",
-        "end_time",
-        "status",
-        "created_at",
-        "cost",
-        "updated_at"
-    ]
-
-    filtered_data = []
-    for d in data:
-        d = d.copy()
-        d.pop("id", None)
-
-        if "updated_at" not in d:
-            d["updated_at"] = None
-
-        row = {col: d.get(col) for col in db_columns}
-        filtered_data.append(row)
-
-    keys = filtered_data[0].keys()
-    columns = ", ".join(keys)
-    placeholders = ", ".join(["%s"] * len(keys))
-    sql = f"INSERT INTO reservations ({columns}) VALUES ({placeholders})"
-
-    values = [tuple(row[k] for k in keys) for row in filtered_data]
-
     try:
-        cursor.executemany(sql, values)
+        sql = """
+        INSERT INTO reservations
+            (user_id, parking_lot_id, vehicle_id, start_time, end_time,
+             status, created_at, cost, updated_at)
+        VALUES
+            (%(user_id)s, %(parking_lot_id)s, %(vehicle_id)s, %(start_time)s, %(end_time)s,
+             %(status)s, %(created_at)s, %(cost)s, %(updated_at)s)
+        """
+        cursor.execute(sql, data)
         conn.commit()
-        print("Reservation(s) inserted successfully!")
-    except mysql.connector.Error as e:
-        print("Error inserting reservation:", e)
+
+    except Exception as e:
+        print(f"Error saving reservation: {e}")
+
     finally:
         cursor.close()
         conn.close()
 
 
-def update_reservation_data(reservation):
-    if "id" not in reservation:
+def update_reservation_data(reservation: Reservations):
+    if not isinstance(reservation, Reservations):
+        raise TypeError("Expected Reservations instance")
+    if reservation.id is None:
         raise ValueError("Reservation must have an 'id' to update")
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    db_columns = [
-        "user_id",
-        "parking_lot_id",
-        "vehicle_id",
-        "start_time",
-        "end_time",
-        "status",
-        "updated_at",
-        "cost"
-    ]
+    fields = {
+        "user_id": reservation.user_id,
+        "parking_lot_id": reservation.parking_lot_id,
+        "vehicle_id": reservation.vehicle_id,
+        "start_time": reservation.start_time,
+        "end_time": reservation.end_time,
+        "status": reservation.status,
+        "created_at": reservation.created_at,
+        "cost": reservation.cost,
+        "updated_at": reservation.updated_at
+    }
 
-    set_clause = ", ".join(f"{col}=%s" for col in db_columns)
-    sql = f"UPDATE reservations SET {set_clause} WHERE id=%s"
+    updates = {k: v for k, v in fields.items() if v is not None}
 
-    values = [reservation[col] for col in db_columns]
-    values.append(reservation["id"])
+    if not updates:
+        return
+
+    sql = f"UPDATE reservations SET {', '.join(f'{k}=%s' for k in updates)} WHERE id=%s"
+    values = list(updates.values()) + [reservation.id]
 
     try:
         cursor.execute(sql, values)
         conn.commit()
-        print(f"Reservation {reservation['id']} updated successfully!")
-    except mysql.connector.Error as e:
-        print("Error updating reservation:", e)
+
     finally:
         cursor.close()
         conn.close()
 
-def delete_reservation(reservation):
+def delete_reservation(reservation: Reservations):
+    if not isinstance(reservation, Reservations):
+        raise TypeError("reservation must be a Reservations instance")
+
     conn = None
     cursor = None
 
@@ -151,7 +148,10 @@ def delete_reservation(reservation):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        rid = int(reservation["id"])
+        rid = reservation.id
+        if rid is None:
+            raise ValueError("Reservation must have an 'id' to delete")
+
         sql = "DELETE FROM reservations WHERE id = %s"
         cursor.execute(sql, (rid,))
         conn.commit()
