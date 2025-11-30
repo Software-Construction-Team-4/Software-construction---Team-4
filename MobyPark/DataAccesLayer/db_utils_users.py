@@ -72,39 +72,39 @@ def get_db_connection():
 #         cursor.close()
 #         conn.close()
 
-# def load_users():
-#     conn = get_db_connection()
-#     cursor = conn.cursor(dictionary=True)
-#     users_list = []
+def load_users():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    users_list = []
 
-#     try:
-#         cursor.execute("SELECT * FROM users")
-#         rows = cursor.fetchall()
+    try:
+        cursor.execute("SELECT * FROM users")
+        rows = cursor.fetchall()
 
-#         for row in rows:
-#             user = userModel(
-#                 id=row["id"],
-#                 username=row["username"],
-#                 password=row["password"],
-#                 name=row["name"],
-#                 email=row["email"],
-#                 phone=row["phone"],
-#                 role=row["role"],
-#                 created_at=row["created_at"],
-#                 birth_year=row["birth_year"],
-#                 active=row["active"]
-#             )
-#             users_list.append(user)
+        for row in rows:
+            user = userModel(
+                id=row["id"],
+                username=row["username"],
+                password=row["password"],
+                name=row["name"],
+                email=row["email"],
+                phone=row["phone"],
+                role=row["role"],
+                created_at=row["created_at"],
+                birth_year=row["birth_year"],
+                active=row["active"]
+            )
+            users_list.append(user)
 
-#         return users_list
+        return users_list
 
-#     except Exception as e:
-#         print(f"Error loading users: {e}")
-#         return []
+    except Exception as e:
+        print(f"Error loading users: {e}")
+        return []
 
-#     finally:
-#         cursor.close()
-#         conn.close()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def save_user(user: userModel):
