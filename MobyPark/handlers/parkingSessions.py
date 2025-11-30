@@ -2,21 +2,22 @@ import json
 from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, load_sessions
 from session_manager import get_session
 
+def send_json(self, status_code, data):
+    self.send_response(status_code)
+    self.send_header("Content-Type", "application/json")
+    self.end_headers()
+    # default=str fixes Decimal and datetime
+    self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
+
 def do_GET(self):
     parts = self.path.strip("/").split("/")
     if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
         lot_id = parts[2] if len(parts) == 3 else None
         sessions = load_sessions(lot_id)
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(sessions).encode("utf-8"))
+        send_json(self, 200, sessions)
         return
 
-    self.send_response(404)
-    self.send_header("Content-Type", "application/json")
-    self.end_headers()
-    self.wfile.write(b"Invalid route")
+    send_json(self, 404, {"error": "Invalid route"})
 
 def do_POST(self):
     parts = self.path.strip("/").split("/")
