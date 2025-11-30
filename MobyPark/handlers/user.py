@@ -2,7 +2,7 @@ import json
 import hashlib
 import uuid
 from datetime import date
-from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data, deactivate_duplicate_users,find_duplicate_users
+from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
 from session_manager import add_session, remove_session, get_session
 from DataModels.userModel import userModel
 
