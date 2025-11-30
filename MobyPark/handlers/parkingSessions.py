@@ -44,6 +44,16 @@ def do_POST(self):
             return
 
         session_id = start_session(parking_lot_id, licenseplate, session_user.get("user_id"))
+
+        if session_id is None:
+            self.send_response(409)  # Conflict
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "error": "Active session already exists for this license plate in this parking lot"
+            }).encode("utf-8"))
+            return
+
         self.send_response(201)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
