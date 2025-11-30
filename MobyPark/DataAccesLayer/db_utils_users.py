@@ -10,39 +10,101 @@ def get_db_connection():
         database="mobypark"
     )
 
-def load_users():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    users_list = []
+#  Laat alle dubbele users zien
 
-    try:
-        cursor.execute("SELECT * FROM users")
-        rows = cursor.fetchall()
+# def find_duplicate_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
 
-        for row in rows:
-            user = userModel(
-                id=row["id"],
-                username=row["username"],
-                password=row["password"],
-                name=row["name"],
-                email=row["email"],
-                phone=row["phone"],
-                role=row["role"],
-                created_at=row["created_at"],
-                birth_year=row["birth_year"],
-                active=row["active"]
-            )
-            users_list.append(user)
+#     try:
+#         sql = """
+#         SELECT username, COUNT(*) AS count
+#         FROM users
+#         GROUP BY username
+#         HAVING COUNT(*) > 1
+#         ORDER BY count DESC;
+#         """
 
-        return users_list
+#         cursor.execute(sql)
+#         duplicates = cursor.fetchall()
 
-    except Exception as e:
-        print(f"Error loading users: {e}")
-        return []
+#         if not duplicates:
+#             print("No duplicate users found.")
+#             return
 
-    finally:
-        cursor.close()
-        conn.close()
+#         print("Duplicate usernames:")
+#         for row in duplicates:
+#             print(f"{row['username']}: {row['count']}")
+
+#     except Exception as e:
+#         print(f"Error detecting duplicates: {e}")
+
+#     finally:
+#         cursor.close()
+#         conn.close()
+
+# DUBBELE USERS WORDEN INACTIVE
+
+# def deactivate_duplicate_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+
+#     try:
+#         sql = """
+#         UPDATE users u
+#         JOIN (
+#             SELECT username, MIN(id) AS keep_id
+#             FROM users
+#             GROUP BY username
+#         ) x ON u.username = x.username
+#         SET u.active = 0
+#         WHERE u.id <> x.keep_id;
+#         """
+#         cursor.execute(sql)
+#         conn.commit()
+#         print("Duplicate users have been set to inactive (active = 0).")
+
+#     except Exception as e:
+#         print(f"Error deactivating duplicate users: {e}")
+#         conn.rollback()
+
+#     finally:
+#         cursor.close()
+#         conn.close()
+
+# def load_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
+#     users_list = []
+
+#     try:
+#         cursor.execute("SELECT * FROM users")
+#         rows = cursor.fetchall()
+
+#         for row in rows:
+#             user = userModel(
+#                 id=row["id"],
+#                 username=row["username"],
+#                 password=row["password"],
+#                 name=row["name"],
+#                 email=row["email"],
+#                 phone=row["phone"],
+#                 role=row["role"],
+#                 created_at=row["created_at"],
+#                 birth_year=row["birth_year"],
+#                 active=row["active"]
+#             )
+#             users_list.append(user)
+
+#         return users_list
+
+#     except Exception as e:
+#         print(f"Error loading users: {e}")
+#         return []
+
+#     finally:
+#         cursor.close()
+#         conn.close()
 
 
 def save_user(user: userModel):

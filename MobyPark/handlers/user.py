@@ -2,7 +2,7 @@ import json
 import hashlib
 import uuid
 from datetime import date
-from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
+from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data, deactivate_duplicate_users,find_duplicate_users
 from session_manager import add_session, remove_session, get_session
 from DataModels.userModel import userModel
 
@@ -50,6 +50,8 @@ def do_POST(self):
 
 
     elif self.path == "/login":
+            # find_duplicate_users()
+            # deactivate_duplicate_users()
             data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
             username = data.get("username")
             password = data.get("password")
