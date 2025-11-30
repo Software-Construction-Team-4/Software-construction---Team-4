@@ -66,7 +66,12 @@ def do_POST(self):
         self.send_response(201)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"status": "Success", "reservation": new_reservation.to_dict()}).encode("utf-8"))
+        self.wfile.write(
+            json.dumps(
+                {"status": "Success", "reservation": new_reservation.to_dict()},
+                default=str      # <-- this is the important part
+            ).encode("utf-8")
+        )
 
 def do_PUT(self):
     if self.path.startswith("/reservations/"):
