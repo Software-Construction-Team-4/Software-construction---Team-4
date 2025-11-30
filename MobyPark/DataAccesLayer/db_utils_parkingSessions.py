@@ -11,11 +11,35 @@ def get_db_connection():
 
 def start_session(parking_lot_id, licenseplate, user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    # NOTE: buffered=True to avoid "Unread result found"
+    cursor = conn.cursor(dictionary=True, buffered=True)
     try:
+        # Check if there is already an active session for this license plate
+        # (restrict to same parking lot; remove parking_lot_id if you want global uniqueness)
         cursor.execute(
-            "INSERT INTO parking_sessions (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status) "
-            "VALUES (%s, %s, NOW(), %s, 0, 0, 'pending')",
+            """
+            SELECT id
+            FROM parking_sessions
+            WHERE parking_lot_id = %s
+              AND licenseplate = %s
+              AND stopped IS NULL
+            """,
+            (parking_lot_id, licenseplate)
+        )
+
+        existing = cursor.fetchone()
+        if existing:
+            # Active session already exists; signal to caller
+            return None
+
+        # No active session -> create a new one
+        cursor.execute(
+            """
+            INSERT INTO parking_sessions
+                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status)
+            VALUES
+                (%s, %s, NOW(), %s, 0, 0, 'pending')
+            """,
             (parking_lot_id, licenseplate, user_id)
         )
         conn.commit()
@@ -24,9 +48,10 @@ def start_session(parking_lot_id, licenseplate, user_id):
         cursor.close()
         conn.close()
 
+
 def stop_session(parking_lot_id, licenseplate):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     try:
         cursor.execute(
             "SELECT * FROM parking_sessions WHERE parking_lot_id=%s AND licenseplate=%s AND stopped IS NULL",
@@ -41,9 +66,14 @@ def stop_session(parking_lot_id, licenseplate):
         tariff = lot['tariff'] if lot else 0
 
         cursor.execute(
-            "UPDATE parking_sessions SET stopped=NOW(), duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()), "
-            "cost=TIMESTAMPDIFF(MINUTE, started, NOW()) * %s / 60, payment_status='unpaid' "
-            "WHERE id=%s",
+            """
+            UPDATE parking_sessions
+            SET stopped=NOW(),
+                duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()),
+                cost=TIMESTAMPDIFF(MINUTE, started, NOW()) * %s / 60,
+                payment_status='unpaid'
+            WHERE id=%s
+            """,
             (tariff, session['id'])
         )
         conn.commit()
@@ -52,9 +82,10 @@ def stop_session(parking_lot_id, licenseplate):
         cursor.close()
         conn.close()
 
+
 def load_sessions(parking_lot_id=None):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     try:
         if parking_lot_id:
             cursor.execute("SELECT * FROM parking_sessions WHERE parking_lot_id=%s", (parking_lot_id,))
