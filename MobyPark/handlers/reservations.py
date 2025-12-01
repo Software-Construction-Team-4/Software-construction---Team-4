@@ -3,6 +3,7 @@ from datetime import datetime, date
 from DataAccesLayer.db_utils_reservations import load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation  # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 from DataModels.reservationsModel import Reservations
+from DataAccesLayer.vehicle_access import VehicleAccess
 
 def do_POST(self):
     if self.path == "/reservations":
@@ -15,11 +16,14 @@ def do_POST(self):
             return
 
         session_user = get_session(token)
+
+        id_of_user = session_user.get("user_id")
+
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-        reservations = load_reservation_data()
+
         parking_lots = load_parking_lot_data()
 
-        for field in ["licenseplate", "parking_lot_id"]:
+        for field in ["start_time", "end_time", "status", "cost", "parking_lot_id"]:
             if field not in data:
                 self.send_response(400)
                 self.send_header("Content-type", "application/json")
@@ -33,25 +37,23 @@ def do_POST(self):
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Parking lot not found", "field": "parking_lot_id"}).encode("utf-8"))
             return
-
-        if session_user.get("role") == "ADMIN":
-            if "user_id" not in data:
-                self.send_response(400)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Required field missing", "field": "user_id"}).encode("utf-8"))
-                return
-            user_id = data["user_id"]
-        else:
-            user_id = session_user["user_id"]
+        
+        if not VehicleAccess.get_all_user_vehicles(id_of_user):
+            self.send_response(404)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "User is not registerd to any vehicle"}).encode("utf-8"))
+            return
 
         parking_lots[data["parking_lot_id"]]["reserved"] += 1
 
+        user_vehicles = VehicleAccess.get_all_user_vehicles(id_of_user)
+
         new_reservation = Reservations(
             id=None,
-            user_id=user_id,
+            user_id=id_of_user,
             parking_lot_id=data["parking_lot_id"],
-            vehicle_id=data["vehicle_id"],
+            vehicle_id=user_vehicles[0].id,
             start_time=data["start_time"],
             end_time=data["end_time"],
             status=data["status"],
@@ -69,7 +71,7 @@ def do_POST(self):
         self.wfile.write(
             json.dumps(
                 {"status": "Success", "reservation": new_reservation.to_dict()},
-                default=str      # <-- this is the important part
+                default=str
             ).encode("utf-8")
         )
 
@@ -96,7 +98,7 @@ def do_PUT(self):
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
 
-        for field in ["user_id", "parking_lot_id", "vehicle_id", "start_time", "end_time", "status", "created_at", "cost", "updated_at"]:
+        for field in ["parking_lot_id", "start_time", "end_time", "status", "created_at", "cost", "updated_at"]:
             if field not in data:
                 self.send_response(400)
                 self.send_header("Content-type", "application/json")
@@ -116,12 +118,14 @@ def do_PUT(self):
             }
             self.wfile.write(json.dumps(message).encode("utf-8"))
             return
+        
+        user_vehicles = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
 
         updated_reservation = Reservations(
             id=found_res_dict["id"],
-            user_id=data.get("user_id", found_res_dict["user_id"]),
+            user_id=session_user.get("user_id"),
             parking_lot_id=data["parking_lot_id"],
-            vehicle_id=data["vehicle_id"],
+            vehicle_id=user_vehicles[0].id,
             start_time=data["start_time"],
             end_time=data["end_time"],
             status=data["status"],

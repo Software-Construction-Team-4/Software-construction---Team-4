@@ -15,43 +15,52 @@ def do_POST(self):
             return
 
         session_user = get_session(token)
+        user_id = session_user["user_id"]
+
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
         required_fields = ["license_plate", "make", "model", "color", "year"]
+        missing_fields = [f for f in required_fields if f not in data or not data[f]]
 
-        missing_fields = [field for field in required_fields if field not in data or not data[field]]
         if missing_fields:
             self.send_response(400)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(
-                json.dumps({"error": "Missing required fields", "fields": missing_fields}).encode("utf-8")
-            )
+            self.wfile.write(json.dumps({
+                "error": "Missing required fields",
+                "fields": missing_fields
+            }).encode("utf-8"))
             return
 
-        # Check if vehicle already exists for this user
-
-        lid = data["license_plate"].replace("-", "")
-
-        user_vehicles = VehicleAccess.get_all_user_vehicles(session_user["id"])
-        existing_vehicle = next((vehicle for vehicle in user_vehicles if (vehicle.license_plate.replace('-', '') == lid)), None)
-
-        if existing_vehicle is not None:
+        if VehicleAccess.user_has_vehicle(user_id):
             self.send_response(409)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(
-                json.dumps({"error": "Vehicle already exists", "vehicle": existing_vehicle}).encode("utf-8")
-            )
+            self.wfile.write(json.dumps({
+                "error": "User already has a vehicle"
+            }).encode("utf-8"))
             return
 
-        new_vehicle = VehicleModel(-1, session_user["id"], data["license_plate"], data["make"], data["model"], data["color"], int(data["year"]))
-        VehicleAccess.update(new_vehicle)
+        vehicle = VehicleModel(
+            -1,
+            user_id,
+            data["license_plate"],
+            data["make"],
+            data["model"],
+            data["color"],
+            int(data["year"])
+        )
+
+        created_vehicle = VehicleAccess.create(vehicle)
 
         self.send_response(201)
-        self.send_header("Content-type", "application/json")
+        self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"status": "Success", "vehicle": new_vehicle}).encode("utf-8"))
+        self.wfile.write(json.dumps({
+            "status": "Success",
+            "vehicle": created_vehicle.to_json()
+        }).encode("utf-8"))
+
 
 def do_PUT(self):
     if self.path.startswith("/vehicles/"):
@@ -138,7 +147,7 @@ def do_DELETE(self):
                     return
 
                 session_user = get_session(token)
-                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user["id"]) if (vehicle.id == lid)), None)
+                vehicle = next((vehicle for vehicle in VehicleAccess.get_all_user_vehicles(session_user["user_id"]) if (vehicle.id == lid)), None)
 
                 if vehicle is None:
                     self.send_response(403)

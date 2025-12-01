@@ -73,21 +73,30 @@ def save_reservation_data(reservation: Reservations):
     if not isinstance(reservation, Reservations):
         raise TypeError("reservation must be of type Reservations")
 
-    data = reservation.to_dict()
-
-    data.pop("id", None)
-
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
     try:
+        cursor.execute("SELECT id FROM reservations ORDER BY id DESC LIMIT 1")
+        newest = cursor.fetchone()
+
+        if newest is None or newest["id"] is None:
+            next_id = 1
+        else:
+            next_id = newest["id"] + 1
+
+        reservation.id = next_id
+
+        data = reservation.to_dict()
+
         sql = """
         INSERT INTO reservations
-            (user_id, parking_lot_id, vehicle_id, start_time, end_time,
+            (id, user_id, parking_lot_id, vehicle_id, start_time, end_time,
              status, created_at, cost, updated_at)
         VALUES
-            (%(user_id)s, %(parking_lot_id)s, %(vehicle_id)s, %(start_time)s, %(end_time)s,
-             %(status)s, %(created_at)s, %(cost)s, %(updated_at)s)
+            (%(id)s, %(user_id)s, %(parking_lot_id)s, %(vehicle_id)s,
+             %(start_time)s, %(end_time)s, %(status)s,
+             %(created_at)s, %(cost)s, %(updated_at)s)
         """
         cursor.execute(sql, data)
         conn.commit()
@@ -98,6 +107,7 @@ def save_reservation_data(reservation: Reservations):
     finally:
         cursor.close()
         conn.close()
+
 
 
 def update_reservation_data(reservation: Reservations):
@@ -168,6 +178,7 @@ def delete_reservation(reservation: Reservations):
             cursor.close()
         if conn:
             conn.close()
+
 
 
 
