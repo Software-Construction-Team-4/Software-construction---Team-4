@@ -1,8 +1,8 @@
 import datetime
 
 class PaymentsModel:
-    def __init__(self, amount : int, completed_at : datetime, created_at : datetime, payment_hash : str, initiator : str, parking_lot_id : int, 
-                 session_id : int, bank : str, transaction_date : datetime, issuer_code : str, payment_method : str, transaction_hash : str, id : int = None):
+    def __init__(self, id : int, amount : int, completed_at : datetime, created_at : datetime, payment_hash : str, initiator : str, parking_lot_id : int, 
+                 session_id : int, bank : str, transaction_date : datetime, issuer_code : str, payment_method : str, transaction_hash : str):
         self.id = id
         self.amount = amount
         self.completed_at = completed_at

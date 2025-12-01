@@ -30,11 +30,8 @@ class PaymentsDataAccess:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE id = %s", (id,))
-            row = cursor.fetchone()
-            if row:
-                return PaymentsModel(**row)
-            else:
-                return None
+            rows = cursor.fetchall()
+            return [PaymentsModel(**row) for row in rows]
         finally:
             cursor.close()
             conn.close()

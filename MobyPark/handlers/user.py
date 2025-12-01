@@ -2,7 +2,7 @@ import json
 import hashlib
 import uuid
 from datetime import date
-from DataAccessLayer.db_utils_users import load_users, save_user, update_user_data
+from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
 from session_manager import add_session, remove_session, get_session
 
 def do_POST(self):
