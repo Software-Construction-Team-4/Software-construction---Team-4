@@ -3,8 +3,9 @@ from datetime import datetime
 from storage_utils import load_json, load_parking_lot_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 import session_calculator as sc
-from DataAccessLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
-from DataAccessLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
+from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
+from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
+from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_user
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -215,22 +216,46 @@ def do_GET(self):
 
         data = []
         session_user = get_session(token)
-        parking_data = load_parking_lots()
-        for pid, parkinglot in parking_data.items():
-            sessions = load_json(f'data/pdata/p{pid}-sessions.json', default={})
-            for sid, session in sessions.items():
-                if session.get("user") == session_user["id"]:
-                    amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                    transaction = sc.generate_transaction_validation_hash(sid, session["license_plate"])
-                    payed = sc.check_payment_amount(transaction)
-                    data.append({
-                        "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},
-                        "parking": {k: v for k, v in parkinglot.items() if k in ["name", "location", "tariff", "daytariff"]},
-                        "amount": amount,
-                        "thash": transaction,
-                        "payed": payed,
-                        "balance": amount - payed
-                    })
+        user = session_user.get("id")
+        sessions = load_sessions_by_user(user)
+        data_access = PaymentsDataAccess()
+
+        for sess in sessions:
+            parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
+            if not parkinglot_model:
+                continue
+
+            parkinglot = {
+                "tariff": float(parkinglot_model.tariff) if parkinglot_model.tariff else 0,
+                "daytariff": float(parkinglot_model.daytariff) if parkinglot_model.daytariff else 0,
+                "name": parkinglot_model.name,
+                "location": parkinglot_model.location,
+            }
+
+            started = sess.started.strftime("%d-%m-%Y %H:%M:%S") if sess.started else None
+            stopped = sess.stopped.strftime("%d-%m-%Y %H:%M:%S") if sess.stopped else None
+            session_dict = {
+                "licenseplate": sess.licenseplate,
+                "started": started,
+                "stopped": stopped,
+                "user": sess.user_id
+            }
+
+            amount, hours, days = sc.calculate_price(parkinglot, str(sess.id), session_dict)
+
+            payments_for_session = data_access.get_by_parkingSession(sess.id, sess.parking_lot_id)
+            payed = sum(p.amount for p in payments_for_session) if payments_for_session else 0
+
+            transaction = sc.generate_transaction_validation_hash(sess.id, session_dict["licenseplate"])
+
+            data.append({
+                "session": {"licenseplate": session_dict["licenseplate"], "started": session_dict["started"], "stopped": session_dict["stopped"]} | {"hours": hours, "days": days},
+                "parking": {"name": parkinglot["name"], "location": parkinglot["location"], "tariff": parkinglot["tariff"], "daytariff": parkinglot["daytariff"]},
+                "amount": amount,
+                "thash": transaction,
+                "payed": payed,
+                "balance": amount - payed
+            })
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
@@ -265,7 +290,7 @@ def do_GET_test(self):
             for sid, session in sessions.items():
                 if session.get("user") == user:
                     amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                    transaction = sc.generate_payment_hash(sid, session)
+                    transaction = sc.generate_transaction_validation_hash(sid, session.get("licenseplate"))
                     payed = sc.check_payment_amount(transaction)
                     data.append({
                         "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},

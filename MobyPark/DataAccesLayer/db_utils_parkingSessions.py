@@ -121,3 +121,15 @@ def load_sessions(parking_lot_id=None):
     finally:
         cursor.close()
         conn.close()
+
+
+def load_sessions_by_userID(user):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True, buffered=True)
+    try:
+        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (user,))
+        rows = cursor.fetchall()
+        return [_row_to_parking_session(row) for row in rows]
+    finally:
+        cursor.close()
+        conn.close()

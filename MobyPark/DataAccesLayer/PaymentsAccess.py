@@ -136,11 +136,11 @@ class PaymentsDataAccess:
             cursor.close()
             conn.close()
 
-    def get_by_session_id(self, id: int):
+    def get_by_parkingSession(self, sid: int, pid: int):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM payments WHERE session_id = %s", (id,))
+            cursor.execute("SELECT * FROM payments WHERE session_id = %s AND parking_lot_id = %s", (sid, pid))
             rows = cursor.fetchall()
             return [PaymentsModel(**row) for row in rows]
         finally:
