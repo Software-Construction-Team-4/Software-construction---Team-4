@@ -4,6 +4,7 @@ from storage_utils import load_json, load_parking_lot_data, load_payment_data, s
 from session_manager import get_session
 import session_calculator as sc
 from DataAccessLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
+from DataAccessLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -214,13 +215,13 @@ def do_GET(self):
 
         data = []
         session_user = get_session(token)
-        parking_data = load_parking_lot_data()
+        parking_data = load_parking_lots()
         for pid, parkinglot in parking_data.items():
             sessions = load_json(f'data/pdata/p{pid}-sessions.json', default={})
             for sid, session in sessions.items():
-                if session.get("user") == session_user["username"]:
+                if session.get("user") == session_user["id"]:
                     amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                    transaction = sc.generate_payment_hash(sid, session)
+                    transaction = sc.generate_transaction_validation_hash(sid, session["license_plate"])
                     payed = sc.check_payment_amount(transaction)
                     data.append({
                         "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},
