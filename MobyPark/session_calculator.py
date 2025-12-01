@@ -39,12 +39,13 @@ def calculate_price(parkinglot, sid, data):
     return price, hours, diff.days + 1 if end.date() > start.date() else 0
 
 
-def generate_payment_hash(sid, data):
-    raw = f"{sid}{data['licenseplate']}"
-    return md5(raw.encode("utf-8")).hexdigest()
+def generate_transaction_validation_hash(sid, licenseplate):
+    text = str(sid) + str(licenseplate).strip()
+    return md5(text.encode("utf-8")).hexdigest()
 
 
-def generate_transaction_validation_hash():
+
+def generate_payment_hash():
     return str(uuid.uuid4())
 
 

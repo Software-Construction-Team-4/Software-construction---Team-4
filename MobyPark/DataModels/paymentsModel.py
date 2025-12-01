@@ -35,5 +35,23 @@ class PaymentsModel:
 
     def to_update_tuple(self):
         return self.to_tuple() + (self.id,)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "amount": self.amount,
+            "completed_at": self.completed_at,
+            "created_at": self.created_at,
+            "payment_hash": self.payment_hash,
+            "initiator": self.initiator,
+            "parking_lot_id": self.parking_lot_id,
+            "session_id": self.session_id,
+            "bank": self.bank,
+            "transaction_date": self.transaction_date,
+            "issuer_code": self.issuer_code,
+            "payment_method": self.payment_method,
+            "transaction_hash": self.transaction_hash,
+        }
+
 
 
