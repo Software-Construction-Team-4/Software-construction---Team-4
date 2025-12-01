@@ -1,4 +1,5 @@
 import mysql.connector
+from DataModels.userModel import userModel
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -9,91 +10,164 @@ def get_db_connection():
         database="mobypark"
     )
 
+#  Laat alle dubbele users zien
 
+# def find_duplicate_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
+
+#     try:
+#         sql = """
+#         SELECT username, COUNT(*) AS count
+#         FROM users
+#         GROUP BY username
+#         HAVING COUNT(*) > 1
+#         ORDER BY count DESC;
+#         """
+
+#         cursor.execute(sql)
+#         duplicates = cursor.fetchall()
+
+#         if not duplicates:
+#             print("No duplicate users found.")
+#             return
+
+#         print("Duplicate usernames:")
+#         for row in duplicates:
+#             print(f"{row['username']}: {row['count']}")
+
+#     except Exception as e:
+#         print(f"Error detecting duplicates: {e}")
+
+#     finally:
+#         cursor.close()
+#         conn.close()
+
+# DUBBELE USERS WORDEN INACTIVE
+
+# def deactivate_duplicate_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+
+#     try:
+#         sql = """
+#         UPDATE users u
+#         JOIN (
+#             SELECT username, MIN(id) AS keep_id
+#             FROM users
+#             GROUP BY username
+#         ) x ON u.username = x.username
+#         SET u.active = 0
+#         WHERE u.id <> x.keep_id;
+#         """
+#         cursor.execute(sql)
+#         conn.commit()
+#         print("Duplicate users have been set to inactive (active = 0).")
+
+#     except Exception as e:
+#         print(f"Error deactivating duplicate users: {e}")
+#         conn.rollback()
+
+#     finally:
+#         cursor.close()
+#         conn.close()
 
 def load_users():
-    """Fetch all users from the database."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    users_list = []
+
     try:
         cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
-        return users
+        rows = cursor.fetchall()
+
+        for row in rows:
+            user = userModel(
+                id=row["id"],
+                username=row["username"],
+                password=row["password"],
+                name=row["name"],
+                email=row["email"],
+                phone=row["phone"],
+                role=row["role"],
+                created_at=row["created_at"],
+                birth_year=row["birth_year"],
+                active=row["active"]
+            )
+            users_list.append(user)
+
+        return users_list
+
     except Exception as e:
         print(f"Error loading users: {e}")
         return []
+
     finally:
         cursor.close()
         conn.close()
 
 
-def save_user(user_data):
+def save_user(user: userModel):
+    if not isinstance(user, userModel):
+        raise TypeError("user must be a of type userModel")
+
+    data = user.to_dict()
+
     conn = get_db_connection()
     cursor = conn.cursor()
+
     try:
         sql = """
-        INSERT INTO users 
+        INSERT INTO users
             (username, password, name, email, phone, role, created_at, birth_year, active)
-        VALUES 
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES
+            (%(username)s, %(password)s, %(name)s, %(email)s, %(phone)s,
+             %(role)s, %(created_at)s, %(birth_year)s, %(active)s)
         """
-        cursor.execute(sql, (
-            user_data.get("username"),
-            user_data.get("password"),
-            user_data.get("name"),
-            user_data.get("email"),
-            user_data.get("phone"),
-            user_data.get("role"),
-            user_data.get("created_at"),
-            user_data.get("birth_year"),
-            user_data.get("active")
-        ))
+
+        cursor.execute(sql, data)
         conn.commit()
+
     except Exception as e:
         print(f"Error saving user: {e}")
+
     finally:
         cursor.close()
         conn.close()
 
 
-def update_user_data(user):
-    if "id" not in user:
+
+def update_user_data(user: userModel):
+    if not isinstance(user, userModel):
+        raise TypeError("Expected userModel instance")
+    if user.id is None:
         raise ValueError("User must have an 'id' to update")
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    db_columns = [
-        "username",
-        "password",
-        "name",
-        "email",
-        "phone",
-        "role",
-        "birth_year",
-        "active"
-    ]
+    fields = {
+        "username": user.username,
+        "password": user.password,
+        "name": user.name,
+        "email": user.email,
+        "phone": user.phone,
+        "role": user.role,
+        "birth_year": user.birth_year,
+        "active": user.active
+    }
 
-    updates = {col: user[col] for col in db_columns if col in user}
+    updates = {k: v for k, v in fields.items() if v is not None}
 
     if not updates:
-        print(f"No fields to update for user {user['id']}")
-        cursor.close()
-        conn.close()
         return
 
-    set_clause = ", ".join(f"{col}=%s" for col in updates.keys())
-    sql = f"UPDATE users SET {set_clause} WHERE id=%s"
-
-    values = list(updates.values())
-    values.append(user["id"])
+    sql = f"UPDATE users SET {', '.join(f'{k}=%s' for k in updates)} WHERE id=%s"
+    values = list(updates.values()) + [user.id]
 
     try:
         cursor.execute(sql, values)
         conn.commit()
-        print(f"User {user['id']} updated successfully!")
-    except mysql.connector.Error as e:
-        print("Error updating user:", e)
     finally:
         cursor.close()
         conn.close()

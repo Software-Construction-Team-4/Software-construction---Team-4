@@ -1,4 +1,6 @@
 import mysql.connector
+from DataModels.parkingLotsModel import ParkingLot  # adjust path/name if needed
+
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -9,26 +11,52 @@ def get_db_connection():
         database="mobypark"
     )
 
+
+def _row_to_parking_lot(row):
+    return ParkingLot(
+        id=row["id"],
+        name=row["name"],
+        location=row["location"],
+        address=row["address"],
+        capacity=row["capacity"],
+        reserved=row["reserved"],
+        tariff=row["tariff"],
+        daytariff=row["daytariff"],
+        created_at=row["created_at"],
+        latitude=row["latitude"],
+        longitude=row["longitude"],
+        status=row["status"],
+        closed_reason=row["closed_reason"],
+        closed_date=row["closed_date"],
+    )
+
+
 def load_parking_lots():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM parking_lots")
         rows = cursor.fetchall()
-        return {str(row["id"]): row for row in rows}
+        # Return dict[id] -> ParkingLot instance
+        return {str(row["id"]): _row_to_parking_lot(row) for row in rows}
     finally:
         cursor.close()
         conn.close()
+
 
 def load_parking_lot_by_id(lot_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM parking_lots WHERE id=%s", (lot_id,))
-        return cursor.fetchone()
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return _row_to_parking_lot(row)
     finally:
         cursor.close()
         conn.close()
+
 
 def save_parking_lot(lot_data):
     conn = get_db_connection()
@@ -59,6 +87,7 @@ def save_parking_lot(lot_data):
         cursor.close()
         conn.close()
 
+
 def update_parking_lot(lot_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -74,6 +103,7 @@ def update_parking_lot(lot_id, data):
     finally:
         cursor.close()
         conn.close()
+
 
 def delete_parking_lot(lot_id):
     conn = get_db_connection()

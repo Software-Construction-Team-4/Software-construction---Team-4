@@ -24,6 +24,7 @@ class PaymentsDataAccess:
         finally:
             cursor.close()
             conn.close()
+            
     
     def get_by_id(self, id: int):
         try:

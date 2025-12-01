@@ -4,6 +4,7 @@ import uuid
 from datetime import date
 from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
 from session_manager import add_session, remove_session, get_session
+from DataModels.userModel import userModel
 
 def do_POST(self):
     if self.path == "/register":
@@ -17,32 +18,30 @@ def do_POST(self):
 
         hashed_password = hashlib.md5(password.encode()).hexdigest()
 
-        # was: users = load_json('data/users.json')
         users = load_users()
 
         for user in users:
-            if username == user['username']:
+            if username == user.username:
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Username already taken")
                 return
 
-        # was: users.append(...)
-        users.append({
-            "username": username,
-            "password": hashed_password,
-            "name": name,
-            "email": email,
-            "phone": phone,
-            "role": "USER",
-            "created_at": date.today().isoformat(),
-            "birth_year": birth_year,
-            "active": True
-        })
+        new_user = userModel(
+            id=None,
+            username=username,
+            password=hashed_password,
+            name=name,
+            email=email,
+            phone=phone,
+            role="USER",
+            created_at=date.today().isoformat(),
+            birth_year=birth_year,
+            active=True
+        )
 
-        # was: save_user_data(users)
-        save_user(users[-1])
+        save_user(new_user)
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")
@@ -51,6 +50,8 @@ def do_POST(self):
 
 
     elif self.path == "/login":
+            # find_duplicate_users()
+            # deactivate_duplicate_users()
             data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
             username = data.get("username")
             password = data.get("password")
@@ -61,17 +62,17 @@ def do_POST(self):
                 self.wfile.write(b"Missing credentials")
                 return
             hashed_password = hashlib.md5(password.encode()).hexdigest()
-            # users = load_json('data/users.json')
+
             users = load_users()
             for user in users:
-                if user.get("username") == username:
-                    if user.get("password") == hashed_password:
+                if user.username == username:
+                    if user.password == hashed_password:
                         token = str(uuid.uuid4())
                         add_session(token, user)
                         self.send_response(200)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
-                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
+                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token, "user_id": user.id}).encode('utf-8'))
                         return
                     else:
                         self.send_response(401)
@@ -107,12 +108,19 @@ def do_PUT(self):
         data = json.loads(self.rfile.read(content_length))
         users = load_users()
 
-        foundUser = next((u for u in users if str(u["id"]) == str(data["id"])), None)
+        foundUser = next((u for u in users if str(u.id) == str(data["id"])), None)
         if foundUser is None:
             self.send_response(404)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(b"User not found")
+            return
+        
+        if foundUser.id != get_session(token)['user_id'] and get_session(token)['role'] != "ADMIN":
+            self.send_response(404)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"You don't have authority to update this user")
             return
 
         updatable_fields = [
@@ -127,20 +135,18 @@ def do_PUT(self):
 
         for field in updatable_fields:
             if field in data:
+                value = data[field]
                 if field == "password":
-                    data[field] = hashlib.md5(data[field].encode()).hexdigest()
+                    value = hashlib.md5(data[field].encode()).hexdigest()
 
-                foundUser[field] = data[field]
+                setattr(foundUser, field, value)
 
         update_user_data(foundUser)
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({
-            "status": "Updated",
-            "user": foundUser
-        }, default=str).encode("utf-8"))
+        self.wfile.write(b"User updated successfully")
         return
 
 

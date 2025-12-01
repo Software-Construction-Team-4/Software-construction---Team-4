@@ -5,16 +5,19 @@
 
 # def test_logout():
 #     dummyuser = {
-#         "username": "logoutDummy",
-#         "password": "logout123",
-#         "name": "Logout Dummy"
+#         "username": "sina",
+#         "password": "321",
+#         "name": "Sina Hashemy",
+#         "email": "sina@gmail.com",
+#         "phone": "+31022293944",
+#         "birth_year": 2000
 #     }
 
 #     requests.post(f"{BASE_URL}/register", json=dummyuser)
 
 #     login_result = requests.post(f"{BASE_URL}/login", json={
-#         "username": "logoutDummy",
-#         "password": "logout123"
+#         "username": "sina",
+#         "password": "321"
 #     })
 
 #     assert login_result.status_code == 200

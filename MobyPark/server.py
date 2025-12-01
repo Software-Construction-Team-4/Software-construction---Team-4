@@ -104,6 +104,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             from handlers.vehicles import do_GET as handle_get
             handle_get(self)
             return
+
         elif self.path.endswith("/history"):
             vid = self.path.split("/")[2]
             from storage_utils import load_json
