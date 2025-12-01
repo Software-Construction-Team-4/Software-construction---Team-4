@@ -1,14 +1,12 @@
 import json
 from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, load_sessions
 from session_manager import get_session
-from DataModels import parkingSessionModel
 
 
 def send_json(self, status_code, data):
     self.send_response(status_code)
     self.send_header("Content-Type", "application/json")
     self.end_headers()
-    # default=str fixes Decimal and datetime
     self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
 
@@ -16,9 +14,8 @@ def do_GET(self):
     parts = self.path.strip("/").split("/")
     if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
         lot_id = parts[2] if len(parts) == 3 else None
-        sessions = load_sessions(lot_id)  # dict[id] -> ParkingSession
+        sessions = load_sessions(lot_id)
 
-        # Convert ParkingSession objects to plain dicts
         sessions_serialized = {}
         for sid, s in sessions.items():
             sessions_serialized[sid] = {
