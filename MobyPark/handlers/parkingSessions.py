@@ -1,6 +1,8 @@
 import json
 from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, load_sessions
 from session_manager import get_session
+from DataModels import parkingSessionModel
+
 
 def send_json(self, status_code, data):
     self.send_response(status_code)
@@ -9,15 +11,33 @@ def send_json(self, status_code, data):
     # default=str fixes Decimal and datetime
     self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
+
 def do_GET(self):
     parts = self.path.strip("/").split("/")
     if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
         lot_id = parts[2] if len(parts) == 3 else None
-        sessions = load_sessions(lot_id)
-        send_json(self, 200, sessions)
+        sessions = load_sessions(lot_id)  # dict[id] -> ParkingSession
+
+        # Convert ParkingSession objects to plain dicts
+        sessions_serialized = {}
+        for sid, s in sessions.items():
+            sessions_serialized[sid] = {
+                "id": s.id,
+                "parking_lot_id": s.parking_lot_id,
+                "user_id": s.user_id,
+                "licenseplate": s.licenseplate,
+                "started": s.started,
+                "stopped": s.stopped,
+                "duration_minutes": s.duration_minutes,
+                "cost": s.cost,
+                "payment_status": s.payment_status,
+            }
+
+        send_json(self, 200, sessions_serialized)
         return
 
     send_json(self, 404, {"error": "Invalid route"})
+
 
 def do_POST(self):
     parts = self.path.strip("/").split("/")
@@ -82,12 +102,24 @@ def do_POST(self):
             self.wfile.write(b"Missing data")
             return
 
-        session = stop_session(parking_lot_id, licenseplate)
+        session = stop_session(parking_lot_id, licenseplate)  # ParkingSession or None
         if session:
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(session).encode("utf-8"))
+            # Explicitly serialize the ParkingSession
+            session_dict = {
+                "id": session.id,
+                "parking_lot_id": session.parking_lot_id,
+                "user_id": session.user_id,
+                "licenseplate": session.licenseplate,
+                "started": session.started,
+                "stopped": session.stopped,
+                "duration_minutes": session.duration_minutes,
+                "cost": session.cost,
+                "payment_status": session.payment_status,
+            }
+            self.wfile.write(json.dumps(session_dict, default=str).encode("utf-8"))
         else:
             self.send_response(404)
             self.send_header("Content-Type", "application/json")

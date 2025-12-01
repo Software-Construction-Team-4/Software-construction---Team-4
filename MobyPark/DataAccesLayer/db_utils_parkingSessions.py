@@ -1,4 +1,6 @@
 import mysql.connector
+from DataModels.parkingSessionModel import ParkingSession
+
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -8,6 +10,21 @@ def get_db_connection():
         password="StrongPassword123!",
         database="mobypark"
     )
+
+
+def _row_to_parking_session(row):
+    return ParkingSession(
+        id=row['id'],
+        parking_lot_id=row['parking_lot_id'],
+        user_id=row['user'],  # DB column is 'user', model attribute is 'user_id'
+        licenseplate=row['licenseplate'],
+        started=row['started'],
+        stopped=row['stopped'],
+        duration_minutes=row['duration_minutes'],
+        cost=row['cost'],
+        payment_status=row['payment_status']
+    )
+
 
 def start_session(parking_lot_id, licenseplate, user_id):
     conn = get_db_connection()
@@ -77,7 +94,14 @@ def stop_session(parking_lot_id, licenseplate):
             (tariff, session['id'])
         )
         conn.commit()
-        return session
+
+        # Reload updated row and convert to model
+        cursor.execute(
+            "SELECT * FROM parking_sessions WHERE id=%s",
+            (session['id'],)
+        )
+        updated_session = cursor.fetchone()
+        return _row_to_parking_session(updated_session)
     finally:
         cursor.close()
         conn.close()
@@ -92,7 +116,8 @@ def load_sessions(parking_lot_id=None):
         else:
             cursor.execute("SELECT * FROM parking_sessions")
         rows = cursor.fetchall()
-        return {str(row['id']): row for row in rows}
+        # Return dict[id] -> ParkingSession instance
+        return {str(row['id']): _row_to_parking_session(row) for row in rows}
     finally:
         cursor.close()
         conn.close()
