@@ -5,10 +5,7 @@ from session_manager import get_session
 
 
 def do_POST(self):
-    """
-    Create a vehicle for the logged-in user.
-    Users & admins can both create, but a user can only have one vehicle.
-    """
+
     if self.path == "/vehicles":
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
@@ -70,11 +67,7 @@ def do_POST(self):
 
 
 def do_PUT(self):
-    """
-    Update a vehicle.
-    ONLY admins are allowed to update, for ANY car.
-    Normal users always get 403.
-    """
+
     if self.path.startswith("/vehicles/"):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
@@ -148,12 +141,6 @@ def do_PUT(self):
 
 
 def do_GET(self):
-    """
-    Get vehicles or specific vehicle info.
-    - GET /vehicles          -> admin: all vehicles, user: own vehicles
-    - GET /vehicles/<id>     -> admin: any vehicle, user: only own
-    - GET /vehicles/<id>/reservations -> example guarded with your admin check pattern
-    """
     if self.path.startswith("/vehicles"):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
@@ -258,11 +245,7 @@ def do_GET(self):
 
 
 def do_DELETE(self):
-    """
-    Delete a vehicle.
-    ONLY admins can delete any vehicle.
-    Normal users always get 403.
-    """
+
     if self.path.startswith("/vehicles/"):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
