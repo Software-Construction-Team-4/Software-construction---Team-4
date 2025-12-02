@@ -53,6 +53,17 @@ class PaymentsDataAccess:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE bank = %s", (bank,))
+            row = cursor.fetchone()
+            return PaymentsModel(row)
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_by_transaction_hash(self, txHash: str):
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM payments WHERE transaction_hash = %s", (txHash,))
             rows = cursor.fetchall()
             return [PaymentsModel(**row) for row in rows]
         finally:
@@ -163,8 +174,8 @@ class PaymentsDataAccess:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE issuer_code = %s", (code,))
-            rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            row = cursor.fetchone()
+            return PaymentsModel(row)
         finally:
             cursor.close()
             conn.close()

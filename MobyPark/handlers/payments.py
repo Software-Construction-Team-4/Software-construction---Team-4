@@ -5,7 +5,7 @@ from session_manager import get_session
 import session_calculator as sc
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
 from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
-from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_user
+from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -38,7 +38,7 @@ def do_POST(self):
                     return
 
             payment_hash = data.get("transaction") if data.get("transaction") else sc.generate_payment_hash()
-            transaction_hash = sc.generate_transaction_validation_hash(payment_hash, data.get("license_plate", ""))
+            transaction_hash = sc.generate_transaction_validation_hash(data.get("session_id"), data.get("license_plate", ""))
 
             payment = PaymentsModel(
                 amount=-abs(data.get("amount", 0)),
@@ -73,7 +73,7 @@ def do_POST(self):
                         break
 
             payment_hash = data.get("transaction") if data.get("transaction") else sc.generate_payment_hash()
-            transaction_hash = sc.generate_transaction_validation_hash(payment_hash, {"license_plate": data["license_plate"]})
+            transaction_hash = sc.generate_transaction_validation_hash(session_id, data["license_plate"])
 
             payment = PaymentsModel(
                 amount=data["amount"],
@@ -217,7 +217,7 @@ def do_GET(self):
         data = []
         session_user = get_session(token)
         user = session_user.get("id")
-        sessions = load_sessions_by_user(user)
+        sessions = load_sessions_by_userID(user)
         data_access = PaymentsDataAccess()
 
         for sess in sessions:
@@ -241,12 +241,11 @@ def do_GET(self):
                 "user": sess.user_id
             }
 
-            amount, hours, days = sc.calculate_price(parkinglot, str(sess.id), session_dict)
+            amount, hours, days = sc.calculate_price(parkinglot, str(sess.session), session_dict)
 
-            payments_for_session = data_access.get_by_parkingSession(sess.id, sess.parking_lot_id)
-            payed = sum(p.amount for p in payments_for_session) if payments_for_session else 0
+            transaction = sc.generate_transaction_validation_hash(sess.session, session_dict["licenseplate"])
+            payed = sc.check_payment_amount(transaction)
 
-            transaction = sc.generate_transaction_validation_hash(sess.id, session_dict["licenseplate"])
 
             data.append({
                 "session": {"licenseplate": session_dict["licenseplate"], "started": session_dict["started"], "stopped": session_dict["stopped"]} | {"hours": hours, "days": days},
