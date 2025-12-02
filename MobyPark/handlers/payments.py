@@ -216,7 +216,7 @@ def do_GET(self):
 
         data = []
         session_user = get_session(token)
-        user = session_user.get("id")
+        user = session_user.get("user_id")
         sessions = load_sessions_by_userID(user)
         data_access = PaymentsDataAccess()
 
