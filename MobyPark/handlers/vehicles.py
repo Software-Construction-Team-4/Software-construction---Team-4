@@ -67,7 +67,11 @@ def do_POST(self):
 
 
 def do_PUT(self):
-
+    """
+    Update a vehicle.
+    - User can update their *own* vehicle.
+    - Admin can update *any* vehicle.
+    """
     if self.path.startswith("/vehicles/"):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
@@ -77,14 +81,6 @@ def do_PUT(self):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
-            return
-
-        # Only admins can update vehicles
-        if session["role"] != "ADMIN":
-            self.send_response(403)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Forbidden: only admins can update vehicles")
             return
 
         content_length = int(self.headers.get("Content-Length", -1))
@@ -107,6 +103,14 @@ def do_PUT(self):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(b"Vehicle not found")
+            return
+
+        # ⬇️ Permission check: user can update own, admin can update any
+        if vehicle.user_id != session["user_id"] and session["role"] != "ADMIN":
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Forbidden: cannot update this vehicle")
             return
 
         # Validate required fields
@@ -171,7 +175,7 @@ def do_GET(self):
             ).encode("utf-8"))
             return
 
-        # /vehicles/<id>/reservations (example, uses your admin-check style)
+        # /vehicles/<id>/reservations
         if self.path.endswith("/reservations"):
             parts = self.path.split("/")
             # expected: ['', 'vehicles', '<id>', 'reservations']
@@ -193,8 +197,6 @@ def do_GET(self):
                 self.wfile.write(b"Not found!")
                 return
 
-            # YOUR STYLE:
-            # if foundUser.id != get_session(token)['user_id'] and get_session(token)['role'] != "ADMIN":
             if vehicle.user_id != get_session(token)["user_id"] and get_session(token)["role"] != "ADMIN":
                 self.send_response(403)
                 self.send_header("Content-Type", "application/json")
@@ -229,7 +231,6 @@ def do_GET(self):
                 self.wfile.write(b"Vehicle not found")
                 return
 
-            # Use your admin check style here as well:
             if vehicle.user_id != get_session(token)["user_id"] and get_session(token)["role"] != "ADMIN":
                 self.send_response(403)
                 self.send_header("Content-Type", "application/json")
