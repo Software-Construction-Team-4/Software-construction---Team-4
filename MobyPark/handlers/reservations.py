@@ -204,6 +204,8 @@ def do_GET(self):
 
 
 def do_DELETE(self):
+    # this shouldnt delete a reservation but keep it and update the status to cancelled
+    # cancelation must be 24 hours before the starts_time
     if self.path.startswith("/reservations/"):
         reservations_data = load_reservation_data()
         parking_lots = load_parking_lot_data()
@@ -254,15 +256,34 @@ def do_DELETE(self):
                 self.wfile.write(json.dumps(message).encode("utf-8"))
                 return
 
+            now = datetime.now()
+            difference = reservation.start_time - now
+            hours_left = difference.total_seconds() / 3600
+            
+            if hours_left < 24:
+                self.send_response(403)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                message = {
+                    "error": "Can't cancel less than 24 hours before the start time of the reservation"
+                }
+                self.wfile.write(json.dumps(message).encode("utf-8"))
+                return
+
+
             pid = reservation.parking_lot_id
             if pid in parking_lots:
                 parking_lots[pid]["reserved"] -= 1
 
-            delete_reservation(reservation)
+            # delete_reservation(reservation)
+
+            reservation.status = "canceled"
+
+            update_reservation_data(reservation)
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
+            self.wfile.write(json.dumps({"status": "Canceled"}).encode("utf-8"))
             return
 
