@@ -29,7 +29,7 @@ def do_POST(self):
                 self.wfile.write(b"Access denied")
                 return
 
-            for field in ["amount", "parking_lot_id"]:
+            for field in ["amount", "parking_lot_id", "license_plate", "session_id"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
@@ -172,11 +172,11 @@ def do_GET(self):
         #for payment in load_payment_data():
         #    if payment.get("initiator") == session_user["username"]:
         #        payments.append(payment)
-
+        paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(payments, default=str).encode("utf-8"))
+        self.wfile.write(json.dumps(paymentsDict, default=str).encode("utf-8"))
         return
 
     elif self.path.startswith("/payments/"):
@@ -201,10 +201,11 @@ def do_GET(self):
         data_access = PaymentsDataAccess()
         payments = data_access.get_by_initiator(user)
 
+        paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(payments, default=str).encode("utf-8"))
+        self.wfile.write(json.dumps(paymentsDict, default=str).encode("utf-8"))
         return
 
     elif self.path == "/billing":
