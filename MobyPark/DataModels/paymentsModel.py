@@ -1,8 +1,22 @@
 import datetime
 
 class PaymentsModel:
-    def __init__(self, id : int, amount : int, completed_at : datetime, created_at : datetime, payment_hash : str, initiator : str, parking_lot_id : int, 
-                 session_id : int, bank : str, transaction_date : datetime, issuer_code : str, payment_method : str, transaction_hash : str):
+    def __init__(
+        self,
+        amount: int = None,
+        completed_at=None,
+        created_at=None,
+        payment_hash: str = None,
+        initiator: str = None,
+        parking_lot_id: int = None,
+        session_id: int = None,
+        bank: str = None,
+        transaction_date=None,
+        issuer_code: str = None,
+        payment_method: str = None,
+        transaction_hash: str = None,
+        id: int = None
+    ):
         self.id = id
         self.amount = amount
         self.completed_at = completed_at
@@ -16,6 +30,7 @@ class PaymentsModel:
         self.issuer_code = issuer_code
         self.payment_method = payment_method
         self.transaction_hash = transaction_hash
+
 
     def to_tuple(self):
         return (

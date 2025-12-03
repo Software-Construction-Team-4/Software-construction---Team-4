@@ -12,38 +12,54 @@ def get_db_connection():
         database="mobypark"
     ) 
 
+def _row_to_payment(row):
+    return PaymentsModel(
+        id=row["id"],
+        amount=row["amount"],
+        completed_at=row["completed_at"],
+        created_at=row["created_at"],
+        payment_hash=row["payment_hash"],
+        initiator=row["initiator"],
+        parking_lot_id=row["parking_lot_id"],
+        session_id=row["session_id"],
+        bank=row["bank"],
+        transaction_date=row["transaction_date"],
+        issuer_code=row["issuer_code"],
+        payment_method=row["payment_method"],
+        transaction_hash=row["transaction_hash"],
+    )
+
 class PaymentsDataAccess:
-    
+
     def get_all_payments(self):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments")
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
-            
-    
+
     def get_by_id(self, id: int):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE id = %s", (id,))
-            rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            row = cursor.fetchone()
+            return None if row is None else _row_to_payment(row)
         finally:
             cursor.close()
             conn.close()
-    
+
     def get_by_payment_method(self, method: str):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE payment_method = %s", (method,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -53,8 +69,8 @@ class PaymentsDataAccess:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE bank = %s", (bank,))
-            row = cursor.fetchone()
-            return PaymentsModel(row)
+            rows = cursor.fetchall()
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -64,19 +80,19 @@ class PaymentsDataAccess:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE transaction_hash = %s", (txHash,))
-            rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            row = cursor.fetchone()
+            return None if row is None else _row_to_payment(row)
         finally:
             cursor.close()
             conn.close()
-    
+
     def get_by_transaction_date(self, date: datetime.datetime):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE transaction_date = %s", (date,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -87,7 +103,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE created_at = %s", (date,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -98,7 +114,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE transaction_date <= %s", (date,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -109,7 +125,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE transaction_date >= %s", (date,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -120,7 +136,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE created_at <= %s", (date,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -131,7 +147,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE created_at >= %s", (date,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -142,7 +158,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE parking_lot_id = %s", (id,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -151,9 +167,12 @@ class PaymentsDataAccess:
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM payments WHERE session_id = %s AND parking_lot_id = %s", (sid, pid))
+            cursor.execute(
+                "SELECT * FROM payments WHERE session_id = %s AND parking_lot_id = %s",
+                (sid, pid)
+            )
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -164,7 +183,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE initiator = %s", (name,))
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
@@ -175,7 +194,7 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM payments WHERE issuer_code = %s", (code,))
             row = cursor.fetchone()
-            return PaymentsModel(row)
+            return None if row is None else _row_to_payment(row)
         finally:
             cursor.close()
             conn.close()
@@ -186,13 +205,14 @@ class PaymentsDataAccess:
             cursor = conn.cursor(dictionary=True)
             cursor.execute(
                 "SELECT * FROM payments WHERE created_at >= %s AND created_at <= %s",
-                (date_min, date_max),
+                (date_min, date_max)
             )
             rows = cursor.fetchall()
-            return [PaymentsModel(**row) for row in rows]
+            return [_row_to_payment(row) for row in rows]
         finally:
             cursor.close()
             conn.close()
+
 
     def update_payment(self, updated_p: PaymentsModel):
         try:

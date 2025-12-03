@@ -55,7 +55,7 @@ def do_POST(self):
                 transaction_hash=transaction_hash
             )
         else:
-            for field in ["parking_lot_id", "amount", "license_plate"]:
+            for field in ["parking_lot_id", "amount", "license_plate", "session_id"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
@@ -130,7 +130,9 @@ def do_PUT(self):
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "error": "Validation failed",
-                    "info": "The validation of the security hash could not be validated for this transaction."
+                    "info": "The validation of the security hash could not be validated for this transaction.",
+                    "id": payment.id,
+                    "transaction2": data.get("transaction_hash")
                 }).encode("utf-8"))
                 return
 
