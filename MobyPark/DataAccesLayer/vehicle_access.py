@@ -5,22 +5,28 @@ import mysql.connector
 from DataModels.vehicle_model import VehicleModel
 
 # TODO place this in a gitignored .env file
-# db = mysql.connector.connect(
-#     host="145.24.237.71",
-#     port=8001,
-#     user="vscode",
-#     password="StrongPassword123!",
-#     database="mobypark"
-# )
-
 db = mysql.connector.connect(
-        host="localhost",
-        port=3306,
-        user="root",
-        password="Kikkervis66!",
-        database="mobypark"
-    )
+    host="145.24.237.71",
+    port=8001,
+    user="vscode",
+    password="StrongPassword123!",
+    database="mobypark"
+)
+
+# db = mysql.connector.connect(
+#         host="localhost",
+#         port=3306,
+#         user="root",
+#         password="Kikkervis66!",
+#         database="mobypark"
+#     )
 cursor = db.cursor()
+
+
+class UserAlreadyHasVehicleError(Exception):
+    """Raised when a user tries to create more than one vehicle."""
+    pass
+
 
 class VehicleAccess:
     TABLE: str = "vehicles"
@@ -79,9 +85,12 @@ class VehicleAccess:
         cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE user_id = %s", (user_id,))
         result = cursor.fetchall()
         return [VehicleModel(*vehicle) for vehicle in result]
-    
+
     @staticmethod
     def user_has_vehicle(user_id: int) -> bool:
+        """
+        Check if the given user already has at least one vehicle.
+        """
         cursor.execute(
             f"SELECT id FROM {VehicleAccess.TABLE} WHERE user_id = %s LIMIT 1",
             (user_id,)
@@ -89,7 +98,11 @@ class VehicleAccess:
         return cursor.fetchone() is not None
 
     @staticmethod
-    def create(vehicle: VehicleModel) -> VehicleModel:
+    def create(vehicle: VehicleModel) -> Optional['VehicleModel']:
+
+        if VehicleAccess.user_has_vehicle(vehicle.user_id):
+            raise UserAlreadyHasVehicleError("User already has a vehicle")
+
         now = datetime.datetime.now().strftime(VehicleModel.DATE_FORMAT)
 
         cursor.execute(f"""
