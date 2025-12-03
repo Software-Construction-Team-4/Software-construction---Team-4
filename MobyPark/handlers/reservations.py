@@ -152,6 +152,7 @@ def do_GET(self):
 
         if rid:
             found_res_dict = next((r for r in reservations_data if str(r["id"]) == str(rid)), None)
+            
 
             if not found_res_dict:
                 self.send_response(404)
@@ -209,7 +210,7 @@ def do_DELETE(self):
         rid = self.path.replace("/reservations/", "").strip("/")
 
         if rid:
-            found_res_dict = next((r for r in reservations_data if str(r.get("id")) == rid), None)
+            found_res_dict = next((r for r in reservations_data if str(r.get("id")) == str(rid)), None)
 
             if not found_res_dict:
                 self.send_response(404)

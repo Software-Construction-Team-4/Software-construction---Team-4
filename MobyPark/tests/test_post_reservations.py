@@ -1,11 +1,15 @@
 import requests
 import pytest
+from DataAccesLayer.vehicle_access import VehicleAccess
+from DataModels.vehicle_model import VehicleModel
+
+from DataAccesLayer.db_utils_users import delete
 
 BASE_URL = "http://localhost:8000"
 
 def get_session_token(user_data):
     response = requests.post(f"{BASE_URL}/login", json=user_data)
-    return response.json().get("session_token")
+    return response.json()
 
 def test_post_reservations_endpoint():
     DummyUserOne = {
@@ -35,7 +39,10 @@ def test_post_reservations_endpoint():
     }
 
     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
-    token1 = get_session_token(DummyUserOne)
+
+    user_data = get_session_token(DummyUserOne)
+    user_id = user_data.get("user_id")
+    token1 = user_data.get("session_token")
     headers1 = {"Authorization": token1}
 
     response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers1)
@@ -43,17 +50,21 @@ def test_post_reservations_endpoint():
     data = response.json()
     assert data["error"] == "User is not registerd to any vehicle"
 
-    requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers1)
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers1)
+    vehicle_data = vehicle_result.json()
+    vehicle_model = vehicle_data["vehicle"]
+    vehicle_obj = VehicleModel(**vehicle_model)
+
     response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers1)
     assert response.status_code == 201
 
     reservation_data = response.json()
     reservation_id = reservation_data["reservation"]["id"]
-    vehicle_id = reservation_data["reservation"]["vehicle_id"]
 
     requests.delete(f"{BASE_URL}/reservations/{reservation_id}",headers=headers1)
-    requests.delete(f"{BASE_URL}/vehicles/{vehicle_id}",headers=headers1)
 
+    VehicleAccess.delete(vehicle_obj)
+    delete(user_id)
 
     DummyUserTwo = {
         "username": "zevensez",
@@ -82,19 +93,22 @@ def test_post_reservations_endpoint():
     }
 
     requests.post(f"{BASE_URL}/register", json=DummyUserTwo)
-    token2 = get_session_token(DummyUserTwo)
+
+    user_data = get_session_token(DummyUserTwo)
+    user_id = user_data.get("user_id")
+    token2 = user_data.get("session_token")
     headers2 = {"Authorization": token2}
 
-    vehicle_response = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleTwo, headers=headers2)
-
-    vehicle_data = vehicle_response.json()
-    vehicle_id = vehicle_data["vehicle"]["id"]
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleTwo, headers=headers2)
+    vehicle_data = vehicle_result.json()
+    vehicle_model = vehicle_data["vehicle"]
+    vehicle_obj = VehicleModel(**vehicle_model)
 
     response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationTwo, headers=headers2)
     assert response.status_code == 404
     data = response.json()
     assert data["error"] == "Parking lot not found"
 
-    requests.delete(f"{BASE_URL}/vehicles/{vehicle_id}",headers=headers2)
-
+    VehicleAccess.delete(vehicle_obj)
+    delete(user_id)
 

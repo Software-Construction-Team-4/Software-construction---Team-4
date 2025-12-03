@@ -1,11 +1,15 @@
 import requests
 import pytest
+from DataAccesLayer.vehicle_access import VehicleAccess
+from DataModels.vehicle_model import VehicleModel
+
+from DataAccesLayer.db_utils_users import delete
 
 BASE_URL = "http://localhost:8000"
 
 def get_session_token(user_data):
     response = requests.post(f"{BASE_URL}/login", json=user_data)
-    return response.json().get("session_token")
+    return response.json()
 
 def test_put_reservations_endpoint():
     DummyUserOne = {
@@ -46,10 +50,17 @@ def test_put_reservations_endpoint():
 
 
     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
-    token1 = get_session_token(DummyUserOne)
+
+    user_data = get_session_token(DummyUserOne)
+    user_id = user_data.get("user_id")
+    token1 = user_data.get("session_token")
     headers1 = {"Authorization": token1}
 
-    requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers1)
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers1)
+    vehicle_data = vehicle_result.json()
+    vehicle_model = vehicle_data["vehicle"]
+    vehicle_obj = VehicleModel(**vehicle_model)
+
     create_response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers1)
     reservation_data_one = create_response.json()
     reservation_id_one = reservation_data_one["reservation"]["id"]
@@ -59,40 +70,49 @@ def test_put_reservations_endpoint():
 
     reservation_data_two = response.json()
     reservation_id_two = reservation_data_two["reservation"]["id"]
-    vehicle_id = reservation_data_two["reservation"]["vehicle_id"]
 
 
     requests.delete(f"{BASE_URL}/reservations/{reservation_id_two}",headers=headers1)
-    requests.delete(f"{BASE_URL}/vehicles/{vehicle_id}",headers=headers1)
+    VehicleAccess.delete(vehicle_obj)
+    delete(user_id)
 
 
     #reservation not found test below
 
-    token2 = get_session_token(DummyUserOne)
+    requests.post(f"{BASE_URL}/register", json=DummyUserOne)
+
+    user_data = get_session_token(DummyUserOne)
+    user_id = user_data.get("user_id")
+    token2 = user_data.get("session_token")
     headers2 = {"Authorization": token2}
 
-    vehicle_response = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers2)
-    
-    vehicle_data = vehicle_response.json()
-    vehicle_id = vehicle_data["vehicle"]["id"]
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers2)
+    vehicle_data = vehicle_result.json()
+    vehicle_model = vehicle_data["vehicle"]
+    vehicle_obj = VehicleModel(**vehicle_model)
 
     response = requests.put(f"{BASE_URL}/reservations/{9999999999999999}", json=UpdatedDummyReservationOne, headers=headers2)
     assert response.status_code == 404
     assert response.text == "Reservation not found"
 
 
-    requests.delete(f"{BASE_URL}/vehicles/{vehicle_id}",headers=headers2)
+    VehicleAccess.delete(vehicle_obj)
+    delete(user_id)
 
 
     # Access denied test below
 
-    token3 = get_session_token(DummyUserOne)
+    requests.post(f"{BASE_URL}/register", json=DummyUserOne)
+
+    user_data = get_session_token(DummyUserOne)
+    user_id = user_data.get("user_id")
+    token3 = user_data.get("session_token")
     headers3 = {"Authorization": token3}
 
-    vehicle_response = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers3)
-    
-    vehicle_data = vehicle_response.json()
-    vehicle_id = vehicle_data["vehicle"]["id"]
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers3)
+    vehicle_data = vehicle_result.json()
+    vehicle_model = vehicle_data["vehicle"]
+    vehicle_obj = VehicleModel(**vehicle_model)
 
     create_response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers3)
     reservation_data_three = create_response.json()
@@ -105,5 +125,5 @@ def test_put_reservations_endpoint():
 
 
     requests.delete(f"{BASE_URL}/reservations/{reservation_id_three}",headers=headers3)
-    requests.delete(f"{BASE_URL}/vehicles/{vehicle_id}",headers=headers3)
-
+    VehicleAccess.delete(vehicle_obj)
+    delete(user_id)

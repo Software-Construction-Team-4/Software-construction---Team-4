@@ -5,21 +5,21 @@ import mysql.connector
 from DataModels.vehicle_model import VehicleModel
 
 # TODO place this in a gitignored .env file
-db = mysql.connector.connect(
-    host="145.24.237.71",
-    port=8001,
-    user="vscode",
-    password="StrongPassword123!",
-    database="mobypark"
-)
-
 # db = mysql.connector.connect(
-#         host="localhost",
-#         port=3306,
-#         user="root",
-#         password="Kikkervis66!",
-#         database="mobypark"
-#     )
+#     host="145.24.237.71",
+#     port=8001,
+#     user="vscode",
+#     password="StrongPassword123!",
+#     database="mobypark"
+# )
+
+db = mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user="root",
+        password="Kikkervis66!",
+        database="mobypark"
+    )
 cursor = db.cursor()
 
 class VehicleAccess:
