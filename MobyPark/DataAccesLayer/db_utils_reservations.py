@@ -1,23 +1,23 @@
 import mysql.connector
 from DataModels.reservationsModel import Reservations
 
-# def get_db_connection():
-#     return mysql.connector.connect(
-#         host="145.24.237.71",
-#         port=8001,
-#         user="vscode",
-#         password="StrongPassword123!",
-#         database="mobypark"
-#     )
-
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",
-        port=3306,
-        user="root",
-        password="Kikkervis66!",
+        host="145.24.237.71",
+        port=8001,
+        user="vscode",
+        password="StrongPassword123!",
         database="mobypark"
     )
+
+# def get_db_connection():
+#     return mysql.connector.connect(
+#         host="localhost",
+#         port=3306,
+#         user="root",
+#         password="Kikkervis66!",
+#         database="mobypark"
+#     )
 
 
 def load_parking_lot_data():

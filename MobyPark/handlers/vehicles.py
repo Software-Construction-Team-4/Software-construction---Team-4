@@ -10,20 +10,36 @@ def do_POST(self):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
 
+        # 1) Auth check
         if not token or not session:
             self.send_response(401)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(b"Unauthorized: Invalid or missing session token")
+            self.wfile.write(json.dumps({
+                "error": "Unauthorized",
+                "message": "Invalid or missing session token"
+            }).encode("utf-8"))
             return
 
         user_id = session["user_id"]
 
+        # 2) Parse body
         content_length = int(self.headers.get("Content-Length", -1))
-        data = json.loads(self.rfile.read(content_length))
+        raw_body = self.rfile.read(content_length)
+        try:
+            data = json.loads(raw_body)
+        except json.JSONDecodeError:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "error": "Invalid JSON body"
+            }).encode("utf-8"))
+            return
 
+        # 3) Validate required fields (matches test expectations)
         required_fields = ["license_plate", "make", "model", "color", "year"]
-        missing_fields = [f for f in required_fields if f not in data or not data[f]]
+        missing_fields = [f for f in required_fields if f not in data or data[f] in ("", None)]
 
         if missing_fields:
             self.send_response(400)
@@ -35,7 +51,8 @@ def do_POST(self):
             }).encode("utf-8"))
             return
 
-        # Only one vehicle per user
+        # 4) Enforce: only one vehicle per user
+        #    This is what your test expects on the second valid POST
         if VehicleAccess.user_has_vehicle(user_id):
             self.send_response(409)
             self.send_header("Content-Type", "application/json")
@@ -45,6 +62,7 @@ def do_POST(self):
             }).encode("utf-8"))
             return
 
+        # 5) Create vehicle
         vehicle = VehicleModel(
             -1,
             user_id,
@@ -52,11 +70,12 @@ def do_POST(self):
             data["make"],
             data["model"],
             data["color"],
-            int(data["year"])
+            int(data["year"]),
         )
 
         created_vehicle = VehicleAccess.create(vehicle)
 
+        # 6) Success response (matches what your test asserts)
         self.send_response(201)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
