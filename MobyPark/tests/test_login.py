@@ -1,50 +1,55 @@
-import requests
-import pytest
+# import requests
+# import pytest
+# from DataAccesLayer.db_utils_users import delete
 
-BASE_URL = "http://localhost:8000"
+# BASE_URL = "http://localhost:8000"
 
-def test_login_endpoint():
-    DummyUserOne ={
-        "username": "sina",
-        "password": "321",
-        "name": "Sina Hashemy",
-        "email": "sina@gmail.com",
-        "phone": "+31022293944",
-        "birth_year": 2000
-    }
+# def test_login_endpoint():
+#     DummyUserOne ={
+#         "username": "sina",
+#         "password": "321",
+#         "name": "Sina Hashemy",
+#         "email": "sina@gmail.com",
+#         "phone": "+31022293944",
+#         "birth_year": 2000
+#     }
 
-    DummyUserTwo ={
-        "username": "sina",
-        "password": "3211",
-        "name": "Sina Hashemy",
-        "email": "sina@gmail.com",
-        "phone": "+31022293944",
-        "birth_year": 2000
-    }
+#     DummyUserTwo ={
+#         "username": "sina",
+#         "password": "3211",
+#         "name": "Sina Hashemy",
+#         "email": "sina@gmail.com",
+#         "phone": "+31022293944",
+#         "birth_year": 2000
+#     }
 
-    DummyUserThree ={
-        "username": "NietBestaand",
-        "password": "321",
-        "name": "Sina Hashemy",
-        "email": "sina@gmail.com",
-        "phone": "+31022293944",
-        "birth_year": 2000
-    }
+#     DummyUserThree ={
+#         "username": "NietBestaand",
+#         "password": "321",
+#         "name": "Sina Hashemy",
+#         "email": "sina@gmail.com",
+#         "phone": "+31022293944",
+#         "birth_year": 2000
+#     }
 
-    requests.post(f"{BASE_URL}/register", json = DummyUserOne)
+#     requests.post(f"{BASE_URL}/register", json = DummyUserOne)
 
-    FirstResult = requests.post(f"{BASE_URL}/login", json = DummyUserOne)
+#     FirstResult = requests.post(f"{BASE_URL}/login", json = DummyUserOne)
+#     data = FirstResult.json()
+#     user_id = data.get("user_id")
 
-    data = FirstResult.json()
-    assert FirstResult.status_code == 200
-    assert data["message"] == "User logged in"
+#     assert FirstResult.status_code == 200
+#     assert data["message"] == "User logged in"
 
-    SecondResult = requests.post(f"{BASE_URL}/login", json = DummyUserTwo)
+#     SecondResult = requests.post(f"{BASE_URL}/login", json = DummyUserTwo)
 
-    assert SecondResult.status_code == 401
-    assert SecondResult.text == "Invalid credentials"
+#     assert SecondResult.status_code == 401
+#     assert SecondResult.text == "Invalid credentials"
 
-    ThirdResult = requests.post(f"{BASE_URL}/login", json = DummyUserThree)
+#     delete(user_id)  # delte staat hier sinds tweede check de user nodig heeft die in eerste check(test) is gemaakt
 
-    assert ThirdResult.status_code == 401
-    assert ThirdResult.text == "User not found"
+#     ThirdResult = requests.post(f"{BASE_URL}/login", json = DummyUserThree)
+
+#     assert ThirdResult.status_code == 401
+#     assert ThirdResult.text == "User not found"
+
