@@ -3,8 +3,9 @@ from datetime import datetime
 from storage_utils import load_json, load_parking_lot_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 import session_calculator as sc
-from DataAccessLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
-from DataAccessLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
+from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
+from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
+from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -28,7 +29,7 @@ def do_POST(self):
                 self.wfile.write(b"Access denied")
                 return
 
-            for field in ["amount", "parking_lot_id"]:
+            for field in ["amount", "parking_lot_id", "license_plate", "session_id"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
@@ -37,7 +38,7 @@ def do_POST(self):
                     return
 
             payment_hash = data.get("transaction") if data.get("transaction") else sc.generate_payment_hash()
-            transaction_hash = sc.generate_transaction_validation_hash(payment_hash, data.get("license_plate", ""))
+            transaction_hash = sc.generate_transaction_validation_hash(data.get("session_id"), data.get("license_plate", ""))
 
             payment = PaymentsModel(
                 amount=-abs(data.get("amount", 0)),
@@ -54,7 +55,7 @@ def do_POST(self):
                 transaction_hash=transaction_hash
             )
         else:
-            for field in ["parking_lot_id", "amount", "license_plate"]:
+            for field in ["parking_lot_id", "amount", "license_plate", "session_id"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
@@ -72,7 +73,7 @@ def do_POST(self):
                         break
 
             payment_hash = data.get("transaction") if data.get("transaction") else sc.generate_payment_hash()
-            transaction_hash = sc.generate_transaction_validation_hash(payment_hash, {"license_plate": data["license_plate"]})
+            transaction_hash = sc.generate_transaction_validation_hash(session_id, data["license_plate"])
 
             payment = PaymentsModel(
                 amount=data["amount"],
@@ -129,7 +130,9 @@ def do_PUT(self):
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "error": "Validation failed",
-                    "info": "The validation of the security hash could not be validated for this transaction."
+                    "info": "The validation of the security hash could not be validated for this transaction.",
+                    "id": payment.id,
+                    "transaction2": data.get("transaction_hash")
                 }).encode("utf-8"))
                 return
 
@@ -169,11 +172,11 @@ def do_GET(self):
         #for payment in load_payment_data():
         #    if payment.get("initiator") == session_user["username"]:
         #        payments.append(payment)
-
+        paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(payments, default=str).encode("utf-8"))
+        self.wfile.write(json.dumps(paymentsDict, default=str).encode("utf-8"))
         return
 
     elif self.path.startswith("/payments/"):
@@ -198,10 +201,11 @@ def do_GET(self):
         data_access = PaymentsDataAccess()
         payments = data_access.get_by_initiator(user)
 
+        paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(payments, default=str).encode("utf-8"))
+        self.wfile.write(json.dumps(paymentsDict, default=str).encode("utf-8"))
         return
 
     elif self.path == "/billing":
@@ -215,22 +219,45 @@ def do_GET(self):
 
         data = []
         session_user = get_session(token)
-        parking_data = load_parking_lots()
-        for pid, parkinglot in parking_data.items():
-            sessions = load_json(f'data/pdata/p{pid}-sessions.json', default={})
-            for sid, session in sessions.items():
-                if session.get("user") == session_user["id"]:
-                    amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                    transaction = sc.generate_transaction_validation_hash(sid, session["license_plate"])
-                    payed = sc.check_payment_amount(transaction)
-                    data.append({
-                        "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},
-                        "parking": {k: v for k, v in parkinglot.items() if k in ["name", "location", "tariff", "daytariff"]},
-                        "amount": amount,
-                        "thash": transaction,
-                        "payed": payed,
-                        "balance": amount - payed
-                    })
+        user = session_user.get("user_id")
+        sessions = load_sessions_by_userID(user)
+        data_access = PaymentsDataAccess()
+
+        for sess in sessions:
+            parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
+            if not parkinglot_model:
+                continue
+
+            parkinglot = {
+                "tariff": float(parkinglot_model.tariff) if parkinglot_model.tariff else 0,
+                "daytariff": float(parkinglot_model.daytariff) if parkinglot_model.daytariff else 0,
+                "name": parkinglot_model.name,
+                "location": parkinglot_model.location,
+            }
+
+            started = sess.started.strftime("%d-%m-%Y %H:%M:%S") if sess.started else None
+            stopped = sess.stopped.strftime("%d-%m-%Y %H:%M:%S") if sess.stopped else None
+            session_dict = {
+                "licenseplate": sess.licenseplate,
+                "started": started,
+                "stopped": stopped,
+                "user": sess.user_id
+            }
+
+            amount, hours, days = sc.calculate_price(parkinglot, str(sess.session), session_dict)
+
+            transaction = sc.generate_transaction_validation_hash(sess.session, session_dict["licenseplate"])
+            payed = sc.check_payment_amount(transaction)
+
+
+            data.append({
+                "session": {"licenseplate": session_dict["licenseplate"], "started": session_dict["started"], "stopped": session_dict["stopped"]} | {"hours": hours, "days": days},
+                "parking": {"name": parkinglot["name"], "location": parkinglot["location"], "tariff": parkinglot["tariff"], "daytariff": parkinglot["daytariff"]},
+                "amount": amount,
+                "thash": transaction,
+                "payed": payed,
+                "balance": amount - payed
+            })
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
@@ -265,7 +292,7 @@ def do_GET_test(self):
             for sid, session in sessions.items():
                 if session.get("user") == user:
                     amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-                    transaction = sc.generate_payment_hash(sid, session)
+                    transaction = sc.generate_transaction_validation_hash(sid, session.get("licenseplate"))
                     payed = sc.check_payment_amount(transaction)
                     data.append({
                         "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},

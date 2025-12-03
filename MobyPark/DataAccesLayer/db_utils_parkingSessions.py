@@ -16,6 +16,7 @@ def _row_to_parking_session(row):
     return ParkingSession(
         id=row['id'],
         parking_lot_id=row['parking_lot_id'],
+        session=row["session"],
         user_id=row['user'],  # DB column is 'user', model attribute is 'user_id'
         licenseplate=row['licenseplate'],
         started=row['started'],
@@ -28,11 +29,8 @@ def _row_to_parking_session(row):
 
 def start_session(parking_lot_id, licenseplate, user_id):
     conn = get_db_connection()
-    # NOTE: buffered=True to avoid "Unread result found"
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
-        # Check if there is already an active session for this license plate
-        # (restrict to same parking lot; remove parking_lot_id if you want global uniqueness)
         cursor.execute(
             """
             SELECT id
@@ -46,24 +44,35 @@ def start_session(parking_lot_id, licenseplate, user_id):
 
         existing = cursor.fetchone()
         if existing:
-            # Active session already exists; signal to caller
-            return None
+            return None 
+        
+        cursor.execute(
+            """
+            SELECT COALESCE(MAX(session_number), 0) + 1 AS next_num
+            FROM parking_sessions
+            WHERE parking_lot_id = %s
+            """,
+            (parking_lot_id,)
+        )
+        next_session_number = cursor.fetchone()['next_num']
 
-        # No active session -> create a new one
         cursor.execute(
             """
             INSERT INTO parking_sessions
-                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status)
+                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session_number)
             VALUES
-                (%s, %s, NOW(), %s, 0, 0, 'pending')
+                (%s, %s, NOW(), %s, 0, 0, 'pending', %s)
             """,
-            (parking_lot_id, licenseplate, user_id)
+            (parking_lot_id, licenseplate, user_id, next_session_number)
         )
+        
         conn.commit()
         return cursor.lastrowid
+
     finally:
         cursor.close()
         conn.close()
+
 
 
 def stop_session(parking_lot_id, licenseplate):
@@ -118,6 +127,18 @@ def load_sessions(parking_lot_id=None):
         rows = cursor.fetchall()
         # Return dict[id] -> ParkingSession instance
         return {str(row['id']): _row_to_parking_session(row) for row in rows}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def load_sessions_by_userID(user):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True, buffered=True)
+    try:
+        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (user,))
+        rows = cursor.fetchall()
+        return [_row_to_parking_session(row) for row in rows]
     finally:
         cursor.close()
         conn.close()
