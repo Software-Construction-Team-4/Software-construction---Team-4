@@ -105,38 +105,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             handle_get(self)
             return
 
-        elif self.path.endswith("/history"):
-            vid = self.path.split("/")[2]
-            from storage_utils import load_json
-
-            token = self.headers.get("Authorization")
-            session_user = get_session(token)
-
-            if not session_user:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-
-            vehicles = load_json("data/vehicles.json")
-            uvehicles = {
-                v["id"]: v
-                for v in vehicles
-                if v.get("user_id") == session_user.get("user_id")
-            }
-
-            if vid not in uvehicles:
-                self.send_response(404)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Not found!")
-                return
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps([]).encode("utf-8"))
+        elif self.path.startswith("/history"):
+            from handlers.history import do_GET as handle_get
+            handle_get(self)
             return
         else:
             self.send_response(404)
