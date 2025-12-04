@@ -1,6 +1,5 @@
 import mysql.connector
-from DataModels.parkingLotsModel import ParkingLot  # adjust path/name if needed
-
+from DataModels.parkingLotsModel import ParkingLot
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -10,7 +9,6 @@ def get_db_connection():
         password="StrongPassword123!",
         database="mobypark"
     )
-
 
 def _row_to_parking_lot(row):
     return ParkingLot(
@@ -30,19 +28,16 @@ def _row_to_parking_lot(row):
         closed_date=row["closed_date"],
     )
 
-
 def load_parking_lots():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM parking_lots")
         rows = cursor.fetchall()
-        # Return dict[id] -> ParkingLot instance
         return {str(row["id"]): _row_to_parking_lot(row) for row in rows}
     finally:
         cursor.close()
         conn.close()
-
 
 def load_parking_lot_by_id(lot_id):
     conn = get_db_connection()
@@ -56,7 +51,6 @@ def load_parking_lot_by_id(lot_id):
     finally:
         cursor.close()
         conn.close()
-
 
 def save_parking_lot(lot_data):
     conn = get_db_connection()
@@ -87,7 +81,6 @@ def save_parking_lot(lot_data):
         cursor.close()
         conn.close()
 
-
 def update_parking_lot(lot_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -103,7 +96,6 @@ def update_parking_lot(lot_id, data):
     finally:
         cursor.close()
         conn.close()
-
 
 def delete_parking_lot(lot_id):
     conn = get_db_connection()
