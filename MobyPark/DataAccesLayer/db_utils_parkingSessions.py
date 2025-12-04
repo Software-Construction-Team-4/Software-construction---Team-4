@@ -1,7 +1,6 @@
 import mysql.connector
 from DataModels.parkingSessionModel import ParkingSession
 
-
 def get_db_connection():
     return mysql.connector.connect(
         host="145.24.237.71",
@@ -10,7 +9,6 @@ def get_db_connection():
         password="StrongPassword123!",
         database="mobypark"
     )
-
 
 def _row_to_parking_session(row):
     return ParkingSession(
@@ -26,7 +24,6 @@ def _row_to_parking_session(row):
         payment_status=row['payment_status']
     )
 
-
 def start_session(parking_lot_id, licenseplate, user_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
@@ -41,14 +38,13 @@ def start_session(parking_lot_id, licenseplate, user_id):
             """,
             (parking_lot_id, licenseplate)
         )
-
         existing = cursor.fetchone()
         if existing:
             return None 
         
         cursor.execute(
             """
-            SELECT COALESCE(MAX(session_number), 0) + 1 AS next_num
+            SELECT COALESCE(MAX(session), 0) + 1 AS next_num
             FROM parking_sessions
             WHERE parking_lot_id = %s
             """,
@@ -59,7 +55,7 @@ def start_session(parking_lot_id, licenseplate, user_id):
         cursor.execute(
             """
             INSERT INTO parking_sessions
-                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session_number)
+                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session)
             VALUES
                 (%s, %s, NOW(), %s, 0, 0, 'pending', %s)
             """,
@@ -68,12 +64,9 @@ def start_session(parking_lot_id, licenseplate, user_id):
         
         conn.commit()
         return cursor.lastrowid
-
     finally:
         cursor.close()
         conn.close()
-
-
 
 def stop_session(parking_lot_id, licenseplate):
     conn = get_db_connection()
@@ -114,7 +107,6 @@ def stop_session(parking_lot_id, licenseplate):
         cursor.close()
         conn.close()
 
-
 def load_sessions(parking_lot_id=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
@@ -128,7 +120,6 @@ def load_sessions(parking_lot_id=None):
     finally:
         cursor.close()
         conn.close()
-
 
 def load_sessions_by_userID(user):
     conn = get_db_connection()
