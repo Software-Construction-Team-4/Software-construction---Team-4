@@ -105,7 +105,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             handle_get(self)
             return
 
-        elif self.path.endswith("/history"):
+        elif self.path.startswith("/history"):
             from handlers.history import do_GET as handle_get
             handle_get(self)
             return
