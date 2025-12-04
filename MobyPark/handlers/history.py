@@ -14,21 +14,22 @@ def do_GET(self):
         self.wfile.write(b"Unauthorized: Invalid or missing session token")
         return
 
-    target_user_id = self.path.replace("/history/", "").strip()
+    path = self.path.split('/')
+    target_user_id = session_user.get("user_id") # default to the user performing the request
 
-    if len(target_user_id) < 1: # get own history
-        target_user_id = session_user.user_id
-    elif target_user_id.isnumeric():
-        target_user_id = int(target_user_id)
-    else:
-        self.send_response(400)
-        self.send_headers("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write("Bad request: User IDs must be numerical")
-        return
+    if len(path) >= 3 and len(path[2].strip()) > 0: # admin: a user ID has been provided
+        uid = path[2]
+        if uid.isnumeric():
+            target_user_id = int(uid)
+        else:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Bad request: User IDs must be numerical")
+            return
 
     # admin: history of other users
-    if target_user_id != session_user.user_id and session_user.role.lower() != "admin":
+    if target_user_id != session_user.get("user_id") and session_user.get("role").lower() != "admin":
         self.send_response(401)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
@@ -37,11 +38,25 @@ def do_GET(self):
 
     sessions = load_sessions_by_userID(target_user_id)
     self.send_response(200)
-    self.send_headers("Content-Type", "application/json")
+    self.send_header("Content-Type", "application/json")
     self.end_headers()
     self.wfile.write(
         json.dumps({
             "status": "Success",
-            "history": sessions.to_json()
+            "history": [
+                {
+                    "id": session.id,
+                    "parking_lot_id": session.parking_lot_id,
+                    "session": session.session,
+                    "user_id": session.user_id,
+                    "licenseplate": session.licenseplate,
+                    "started": session.started.isoformat(),
+                    "stopped": session.stopped.isoformat(),
+                    "duration_minutes": session.duration_minutes,
+                    "cost": float(session.cost),
+                    "payment_status": session.payment_status
+                }
+                for session in sessions
+            ]
         }).encode("utf-8")
     )
