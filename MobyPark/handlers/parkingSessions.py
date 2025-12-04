@@ -1,152 +1,119 @@
-import mysql.connector
-from DataModels.parkingSessionModel import ParkingSession
+import json
+from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, load_sessions
+from session_manager import get_session
 
-def get_db_connection():
-    return mysql.connector.connect(
-        host="145.24.237.71",
-        port=8001,
-        user="vscode",
-        password="StrongPassword123!",
-        database="mobypark"
-    )
 
-def _row_to_parking_session(row):
-    return ParkingSession(
-        id=row['id'],
-        parking_lot_id=row['parking_lot_id'],
-        session=row["session"],
-        user_id=row['user'],
-        licenseplate=row['licenseplate'],
-        started=row['started'],
-        stopped=row['stopped'],
-        duration_minutes=row['duration_minutes'],
-        cost=row['cost'],
-        payment_status=row['payment_status']
-    )
+def send_json(self, status_code, data):
+    self.send_response(status_code)
+    self.send_header("Content-Type", "application/json")
+    self.end_headers()
+    self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
-def start_session(parking_lot_id, licenseplate, user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute(
-            """
-            SELECT id
-            FROM parking_sessions
-            WHERE parking_lot_id = %s
-              AND licenseplate = %s
-              AND stopped IS NULL
-            """,
-            (parking_lot_id, licenseplate)
-        )
-        existing = cursor.fetchone()
-        if existing:
-            return None 
-        
-        cursor.execute(
-            """
-            SELECT COALESCE(MAX(session), 0) + 1 AS next_num
-            FROM parking_sessions
-            WHERE parking_lot_id = %s
-            """,
-            (parking_lot_id,)
-        )
-        next_session_number = cursor.fetchone()['next_num']
 
-        cursor.execute(
-            """
-            INSERT INTO parking_sessions
-                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session)
-            VALUES
-                (%s, %s, NOW(), %s, 0, 0, 'pending', %s)
-            """,
-            (parking_lot_id, licenseplate, user_id, next_session_number)
-        )
+def do_GET(self):
+    parts = self.path.strip("/").split("/")
+    if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
+        lot_id = parts[2] if len(parts) == 3 else None
+        sessions = load_sessions(lot_id)
 
-        cursor.execute(
-            """
-            UPDATE parking_lots
-            SET reserved = reserved + 1
-            WHERE id = %s
-            """,
-            (parking_lot_id,)
-        )
+        sessions_serialized = {}
+        for sid, s in sessions.items():
+            sessions_serialized[sid] = {
+                "id": s.id,
+                "parking_lot_id": s.parking_lot_id,
+                "user_id": s.user_id,
+                "licenseplate": s.licenseplate,
+                "started": s.started,
+                "stopped": s.stopped,
+                "duration_minutes": s.duration_minutes,
+                "cost": s.cost,
+                "payment_status": s.payment_status,
+            }
 
-        conn.commit()
-        return cursor.lastrowid
-    finally:
-        cursor.close()
-        conn.close()
+        send_json(self, 200, sessions_serialized)
+        return
 
-def stop_session(parking_lot_id, licenseplate):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute(
-            "SELECT * FROM parking_sessions WHERE parking_lot_id=%s AND licenseplate=%s AND stopped IS NULL",
-            (parking_lot_id, licenseplate)
-        )
-        session = cursor.fetchone()
-        if not session:
-            return None
+    send_json(self, 404, {"error": "Invalid route"})
 
-        cursor.execute("SELECT tariff FROM parking_lots WHERE id=%s", (parking_lot_id,))
-        lot = cursor.fetchone()
-        tariff = lot['tariff'] if lot else 0
 
-        cursor.execute(
-            """
-            UPDATE parking_sessions
-            SET stopped=NOW(),
-                duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()),
-                cost=TIMESTAMPDIFF(MINUTE, started, NOW()) * %s / 60,
-                payment_status='unpaid'
-            WHERE id=%s
-            """,
-            (tariff, session['id'])
-        )
+def do_POST(self):
+    parts = self.path.strip("/").split("/")
 
-        cursor.execute(
-            """
-            UPDATE parking_lots
-            SET reserved = GREATEST(reserved - 1, 0)
-            WHERE id = %s
-            """,
-            (parking_lot_id,)
-        )
+    if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "start":
+        token = self.headers.get('Authorization')
+        if not token or not get_session(token):
+            self.send_response(401)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Unauthorized")
+            return
 
-        conn.commit()
+        session_user = get_session(token)
+        content_length = int(self.headers.get("Content-Length", 0))
+        data = json.loads(self.rfile.read(content_length))
 
-        cursor.execute(
-            "SELECT * FROM parking_sessions WHERE id=%s",
-            (session['id'],)
-        )
-        updated_session = cursor.fetchone()
-        return _row_to_parking_session(updated_session)
-    finally:
-        cursor.close()
-        conn.close()
+        parking_lot_id = data.get("parking_lot_id")
+        licenseplate = data.get("licenseplate")
+        if not parking_lot_id or not licenseplate:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Missing data")
+            return
 
-def load_sessions(parking_lot_id=None):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        if parking_lot_id:
-            cursor.execute("SELECT * FROM parking_sessions WHERE parking_lot_id=%s", (parking_lot_id,))
-        else:
-            cursor.execute("SELECT * FROM parking_sessions")
-        rows = cursor.fetchall()
-        return {str(row['id']): _row_to_parking_session(row) for row in rows}
-    finally:
-        cursor.close()
-        conn.close()
+        session_id = start_session(parking_lot_id, licenseplate, session_user.get("user_id"))
 
-def load_sessions_by_userID(user):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (user,))
-        rows = cursor.fetchall()
-        return [_row_to_parking_session(row) for row in rows]
-    finally:
-        cursor.close()
-        conn.close()
+        if session_id is None:
+            self.send_response(409)  # Conflict
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "error": "Active session already exists for this license plate in this parking lot"
+            }).encode("utf-8"))
+            return
+
+        self.send_response(201)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"session_id": session_id}).encode("utf-8"))
+        return
+
+    if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "stop":
+        token = self.headers.get('Authorization')
+        if not token or not get_session(token):
+            self.send_response(401)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Unauthorized")
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        data = json.loads(self.rfile.read(content_length))
+
+        parking_lot_id = data.get("parking_lot_id")
+        licenseplate = data.get("licenseplate")
+        if not parking_lot_id or not licenseplate:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Missing data")
+            return
+
+        session = stop_session(parking_lot_id, licenseplate)  # ParkingSession or None
+        if session:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            # Explicitly serialize the ParkingSession
+            session_dict = {
+                "id": session.id,
+                "parking_lot_id": session.parking_lot_id,
+                "user_id": session.user_id,
+                "licenseplate": session.licenseplate,
+                "started": session.started,
+                "stopped": session.stopped,
+                "duration_minutes": session.duration_minutes,
+                "cost": session.cost,
+                "payment_status": session.payment_status,
+            }
+            self.wfile.write(json.dumps(session_dict, default=str).encode("utf-8"))
