@@ -17,7 +17,7 @@ def _row_to_parking_session(row):
         id=row['id'],
         parking_lot_id=row['parking_lot_id'],
         session=row["session"],
-        user_id=row['user'],  # DB column is 'user', model attribute is 'user_id'
+        user_id=row['user'],
         licenseplate=row['licenseplate'],
         started=row['started'],
         stopped=row['stopped'],
@@ -104,7 +104,6 @@ def stop_session(parking_lot_id, licenseplate):
         )
         conn.commit()
 
-        # Reload updated row and convert to model
         cursor.execute(
             "SELECT * FROM parking_sessions WHERE id=%s",
             (session['id'],)
@@ -125,7 +124,6 @@ def load_sessions(parking_lot_id=None):
         else:
             cursor.execute("SELECT * FROM parking_sessions")
         rows = cursor.fetchall()
-        # Return dict[id] -> ParkingSession instance
         return {str(row['id']): _row_to_parking_session(row) for row in rows}
     finally:
         cursor.close()
