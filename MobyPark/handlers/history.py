@@ -1,7 +1,7 @@
 
 import json
-from MobyPark.DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
-from MobyPark.session_manager import get_session
+from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
+from session_manager import get_session
 
 def do_GET(self):
     token = self.headers.get("Authorization")
