@@ -1,0 +1,33 @@
+import requests
+import pytest
+
+BASE_URL = "http://localhost:8000"
+
+def create_user(user_data):
+    requests.post(f"{BASE_URL}/register", json=user_data)
+
+    response = requests.post(f"{BASE_URL}/login", json=user_data)
+    return response.json()
+
+def test_get_user_get_own_history():
+    DummyUser = {
+        "username": "user",
+        "password": "123",
+        "name": "Test D. Ummy",
+        "email": "me@test.com",
+        "phone": "+31 06 00000000",
+        "birth_year": 1969
+    }
+
+    user_data = create_user(DummyUser)
+    auth = { "Authorization": user_data.get("session_token") }
+
+    requests.post(f"{BASE_URL}/parking-lots/sessions/start", json={ "parking_lot_id": 1, "licenseplate": "000-000-000" }, headers=auth)
+
+    response = requests.get(f"{BASE_URL}/history/{user_data.get("user_id")}")
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert len(body.history) > 0
+
