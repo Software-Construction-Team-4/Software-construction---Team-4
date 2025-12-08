@@ -17,6 +17,7 @@ def _row_to_parking_lot(row):
         location=row["location"],
         address=row["address"],
         capacity=row["capacity"],
+        active_sessions=row["active_sessions"] or 0,
         reserved=row["reserved"],
         tariff=row["tariff"],
         daytariff=row["daytariff"],
@@ -73,7 +74,8 @@ def save_parking_lot(lot_data):
             lot_data.get("longitude"),
             lot_data.get("status", "open"),
             lot_data.get("closed_reason"),
-            lot_data.get("closed_date")
+            lot_data.get("closed_date"),
+            0
         ))
         conn.commit()
         return cursor.lastrowid
@@ -102,6 +104,21 @@ def delete_parking_lot(lot_id):
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM parking_lots WHERE id=%s", (lot_id,))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+def increment_active_sessions(lot_id, delta=1):
+    """Safely increment or decrement active_sessions (delta can be negative)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE parking_lots
+            SET active_sessions = GREATEST(COALESCE(active_sessions,0) + %s, 0)
+            WHERE id=%s
+        """, (delta, lot_id))
         conn.commit()
     finally:
         cursor.close()
