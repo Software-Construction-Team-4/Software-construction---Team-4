@@ -29,39 +29,28 @@ def start_session(parking_lot_id, licenseplate, user_id):
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
         cursor.execute(
-            """
-            SELECT id
-            FROM parking_sessions
-            WHERE parking_lot_id = %s
-              AND licenseplate = %s
-              AND stopped IS NULL
-            """,
+            "SELECT id FROM parking_sessions WHERE parking_lot_id=%s AND licenseplate=%s AND stopped IS NULL",
             (parking_lot_id, licenseplate)
         )
-        existing = cursor.fetchone()
-        if existing:
-            return None 
-        
+        if cursor.fetchone():
+            return None
+
         cursor.execute(
-            """
-            SELECT COALESCE(MAX(session), 0) + 1 AS next_num
-            FROM parking_sessions
-            WHERE parking_lot_id = %s
-            """,
+            "SELECT COALESCE(MAX(session), 0) + 1 AS next_num FROM parking_sessions WHERE parking_lot_id=%s",
             (parking_lot_id,)
         )
         next_session_number = cursor.fetchone()['next_num']
 
         cursor.execute(
-            """
-            INSERT INTO parking_sessions
-                (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session)
-            VALUES
-                (%s, %s, NOW(), %s, 0, 0, 'pending', %s)
-            """,
+            "INSERT INTO parking_sessions (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session) VALUES (%s,%s,NOW(),%s,0,0,'pending',%s)",
             (parking_lot_id, licenseplate, user_id, next_session_number)
         )
-        
+
+        cursor.execute(
+            "UPDATE parking_lots SET active_sessions = COALESCE(active_sessions,0) + 1 WHERE id=%s",
+            (parking_lot_id,)
+        )
+
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -85,22 +74,18 @@ def stop_session(parking_lot_id, licenseplate):
         tariff = lot['tariff'] if lot else 0
 
         cursor.execute(
-            """
-            UPDATE parking_sessions
-            SET stopped=NOW(),
-                duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()),
-                cost=TIMESTAMPDIFF(MINUTE, started, NOW()) * %s / 60,
-                payment_status='unpaid'
-            WHERE id=%s
-            """,
+            "UPDATE parking_sessions SET stopped=NOW(), duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()), cost=TIMESTAMPDIFF(MINUTE, started, NOW())*%s/60, payment_status='unpaid' WHERE id=%s",
             (tariff, session['id'])
         )
-        conn.commit()
 
         cursor.execute(
-            "SELECT * FROM parking_sessions WHERE id=%s",
-            (session['id'],)
+            "UPDATE parking_lots SET active_sessions = GREATEST(COALESCE(active_sessions,0)-1,0) WHERE id=%s",
+            (parking_lot_id,)
         )
+
+        conn.commit()
+
+        cursor.execute("SELECT * FROM parking_sessions WHERE id=%s", (session['id'],))
         updated_session = cursor.fetchone()
         return _row_to_parking_session(updated_session)
     finally:
