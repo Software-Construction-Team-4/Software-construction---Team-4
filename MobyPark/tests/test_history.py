@@ -1,3 +1,4 @@
+import uuid
 import requests
 from DataAccesLayer.db_utils_users import load_users, update_user_data, delete
 import pytest
@@ -17,7 +18,7 @@ def create_user(user_data):
 
 def test_user_get_history_self():
     DummyUser = {
-        "username": "user_test_user_get_history_self",
+        "username": f"user_test_user_get_history_self_{uuid.uuid4()}",
         "password": "123",
         "name": "Test D. Ummy",
         "email": "test_user_get_history_self@test.com",
@@ -28,10 +29,11 @@ def test_user_get_history_self():
     user_data = create_user(DummyUser)
     auth = { "Authorization": user_data.get("session_token") }
 
-    requests.post(f"{BASE_URL}/parking-lots/sessions/start", json={ "parking_lot_id": 1, "licenseplate": "000-000-000" }, headers=auth)
+    payload = { "parking_lot_id": 1, "licenseplate": "000-000-000" }
+    requests.post(f"{BASE_URL}/parking-lots/sessions/start", json=payload, headers=auth)
+    requests.post(f"{BASE_URL}/parking-lots/sessions/stop", json=payload, headers=auth)
 
     response = requests.get(f"{BASE_URL}/history", headers=auth)
-    print(str(response.content))
 
     assert response.status_code == 200
 
