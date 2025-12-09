@@ -26,13 +26,13 @@
 #         "username": f"{username}",
 #         "password": "321",
 #         "name": "sezeven Hashemy",
-#         "email": "sezeven@gmail.com",
+#         "email": f"sezeven{username}@gmail.com",
 #         "phone": f"+310{random_phonenumber}",
 #         "birth_year": 2000
 #     }
 
 #     DummyVehicleOne = {
-#         "license_plate": "34-OOO-3", 
+#         "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
 #         "make": "Ford", 
 #         "model": "Sport", 
 #         "color": "Red", 
@@ -77,16 +77,16 @@
 #     delete(user_id)
 
 #     DummyUserTwo = {
-#         "username": "zevensez",
+#         "username": f"{username}",
 #         "password": "321",
 #         "name": "zevensez Hashemy",
-#         "email": "zevensez@gmail.com",
-#         "phone": "+31022293944",
+#         "email": f"zevensez{username}@gmail.com",
+#         "phone": f"+310{random_phonenumber}",
 #         "birth_year": 2000
 #     }
 
 #     DummyVehicleTwo = {
-#         "license_plate": "34-BBB-3", 
+#         "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
 #         "make": "Ford", 
 #         "model": "Sport", 
 #         "color": "Red", 
