@@ -67,6 +67,7 @@ def save_parking_lot(lot_data):
             lot_data.get("location"),
             lot_data.get("address"),
             lot_data.get("capacity"),
+            lot_data.get("active_sessions", 0),
             lot_data.get("reserved", 0),
             lot_data.get("tariff", 0),
             lot_data.get("daytariff", 0),
@@ -74,8 +75,7 @@ def save_parking_lot(lot_data):
             lot_data.get("longitude"),
             lot_data.get("status", "open"),
             lot_data.get("closed_reason"),
-            lot_data.get("closed_date"),
-            0
+            lot_data.get("closed_date")
         ))
         conn.commit()
         return cursor.lastrowid
