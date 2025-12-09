@@ -24,7 +24,7 @@ def test_get_user_get_own_history():
 
     requests.post(f"{BASE_URL}/parking-lots/sessions/start", json={ "parking_lot_id": 1, "licenseplate": "000-000-000" }, headers=auth)
 
-    response = requests.get(f"{BASE_URL}/history/{user_data.get("user_id")}")
+    response = requests.get(f"{BASE_URL}/history/{user_data.get("user_id")}", headers=auth)
 
     assert response.status_code == 200
 
