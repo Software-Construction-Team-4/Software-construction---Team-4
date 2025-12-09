@@ -20,43 +20,6 @@ def get_db_connection():
 #     )
 
 
-def load_parking_lot_data():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM parking_lots")
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    parking_lots = {str(row["id"]): row for row in rows}
-    return parking_lots
-
-
-def save_parking_lot_data(data):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    if data:
-
-        if isinstance(data, dict):
-            data = list(data.values())
-
-        for d in data:
-            d.pop("id", None)
-
-        keys = data[0].keys()
-        columns = ", ".join(keys)
-        placeholders = ", ".join(["%s"] * len(keys))
-        sql = f"INSERT INTO parking_lots ({columns}) VALUES ({placeholders})"
-
-        values = [tuple(d[k] for k in keys) for d in data]
-
-        cursor.executemany(sql, values)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
 
 
 def load_reservation_data():
