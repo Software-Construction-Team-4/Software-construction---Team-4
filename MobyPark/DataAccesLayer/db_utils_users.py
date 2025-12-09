@@ -192,3 +192,22 @@ def delete(user_id: int) -> None:
     db.commit()
     cursor.close()
     db.close()
+
+
+def delete_users_after_id():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = "DELETE FROM users WHERE id > %s"
+        cursor.execute(sql, (8600,))
+        conn.commit()
+        return(f"All users with id > 8600 have been deleted.")
+    except Exception:
+        conn.rollback()
+        return "error"
+    finally:
+        cursor.close()
+        conn.close()
+
+    
