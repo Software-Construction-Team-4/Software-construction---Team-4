@@ -1,5 +1,8 @@
 # import requests
 # import pytest
+# import random
+# import uuid
+# import string
 
 # from DataAccesLayer.vehicle_access import VehicleAccess
 # from DataModels.vehicle_model import VehicleModel
@@ -13,17 +16,23 @@
 #     return response.json()
 
 # def test_get_reservations_endpoint():
+#     username = uuid.uuid4().hex[:8]
+#     random_phonenumber = random.randint(10000000, 99999999)
+#     random_number_one = random.randint(10, 99)
+#     random_number_two = random.randint(1, 9)
+#     random_letters = ''.join(random.choices(string.ascii_uppercase, k=3))
+
 #     DummyUserOne = {
-#         "username": "sezeven",
+#         "username": f"{username}",
 #         "password": "321",
 #         "name": "sezeven Hashemy",
-#         "email": "sezeven@gmail.com",
-#         "phone": "+31022293944",
+#         "email": f"sezeven{username}@gmail.com",
+#         "phone": f"+310{random_phonenumber}",
 #         "birth_year": 2000
 #     }
 
 #     DummyVehicleOne = {
-#         "license_plate": "34-OOO-3", 
+#         "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
 #         "make": "Ford", 
 #         "model": "Sport", 
 #         "color": "Red", 

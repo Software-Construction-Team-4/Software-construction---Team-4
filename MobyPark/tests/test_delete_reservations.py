@@ -1,5 +1,8 @@
 # import requests
 # import pytest
+# import random
+# import uuid
+# import string
 
 # from DataAccesLayer.vehicle_access import VehicleAccess
 # from DataModels.vehicle_model import VehicleModel
@@ -8,22 +11,29 @@
 
 # BASE_URL = "http://localhost:8000"
 
+
 # def get_session_token(user_data):
 #     response = requests.post(f"{BASE_URL}/login", json=user_data)
 #     return response.json()
 
 # def test_delete_reservations_endpoint():
+#     username = uuid.uuid4().hex[:8]
+#     random_phonenumber = random.randint(10000000, 99999999)
+#     random_number_one = random.randint(10, 99)
+#     random_number_two = random.randint(1, 9)
+#     random_letters = ''.join(random.choices(string.ascii_uppercase, k=3))
+
 #     DummyUserOne = {
-#         "username": "sezeven",
+#         "username": f"{username}",
 #         "password": "321",
 #         "name": "sezeven Hashemy",
-#         "email": "sezeven@gmail.com",
-#         "phone": "+31022293944",
+#         "email": f"sezeven{username}@gmail.com",
+#         "phone": f"+310{random_phonenumber}",
 #         "birth_year": 2000
 #     }
 
 #     DummyVehicleOne = {
-#         "license_plate": "34-OOO-3", 
+#         "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
 #         "make": "Ford", 
 #         "model": "Sport", 
 #         "color": "Red", 
@@ -59,7 +69,7 @@
 #     get_result = requests.delete(f"{BASE_URL}/reservations/{reservation_id}", json=DummyReservationOne, headers=headers1)
 #     assert get_result.status_code == 200
 #     data = get_result.json()
-#     assert data["status"] == "Deleted"
+#     assert data["status"] == "Canceled"
 
 
 #     # requests.delete(f"{BASE_URL}/reservations/{reservation_id}",headers=headers1)
@@ -92,5 +102,3 @@
 #     # requests.delete(f"{BASE_URL}/reservations/{reservation_id}",headers=headers2)
 #     VehicleAccess.delete(vehicle_obj)
 #     delete(user_id)
-
-
