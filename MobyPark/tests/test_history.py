@@ -1,5 +1,5 @@
 import requests
-from DataAccesLayer.db_utils_users import load_users, update_user_data
+from DataAccesLayer.db_utils_users import load_users, update_user_data, delete
 import pytest
 
 BASE_URL = "http://localhost:8000"
@@ -32,6 +32,8 @@ def test_user_get_history_self():
     body = response.json()
     assert len(body.history) > 0
 
+    delete(user_data.get("user_id"))
+
 def test_user_get_history_other_user():
     DummyUserOne = {
         "username": "user_one",
@@ -59,6 +61,9 @@ def test_user_get_history_other_user():
     response = requests.get(f"{BASE_URL}/history/{user_data_two.get("user_id")}", headers=auth)
 
     assert response.status_code == 401
+
+    delete(user_data_one.get("user_id"))
+    delete(user_data_two.get("user_id"))
 
 def test_admin_get_history_other_user():
     DummyAdmin = {
@@ -92,3 +97,5 @@ def test_admin_get_history_other_user():
 
     assert response.status_code == 200
 
+    delete(admin_data.get("user_id"))
+    delete(user_data.get("user_id"))
