@@ -31,3 +31,30 @@ def test_get_user_get_own_history():
     body = response.json()
     assert len(body.history) > 0
 
+def test_get_user_get_other_user_history():
+    DummyUserOne = {
+        "username": "user_one",
+        "password": "123",
+        "name": "Test D. Ummy",
+        "email": "me@test-one.com",
+        "phone": "+31 06 00000001",
+        "birth_year": 1969
+    }
+
+    DummyUserTwo = {
+        "username": "user_two",
+        "password": "123",
+        "name": "Test D. Ummy",
+        "email": "me@test-two.com",
+        "phone": "+31 06 00000002",
+        "birth_year": 1969
+    }
+
+    user_data_one = create_user(DummyUserOne)
+    auth = { "Authorization": user_data_one.get("session_token") }
+
+    user_data_two = create_user(DummyUserTwo)
+
+    response = requests.get(f"{BASE_URL}/history/{user_data_two.get("user_id")}", headers=auth)
+
+    assert response.status_code == 401
