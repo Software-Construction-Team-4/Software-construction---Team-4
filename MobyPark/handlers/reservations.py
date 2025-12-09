@@ -1,9 +1,10 @@
 import json
 from datetime import datetime, date
-from DataAccesLayer.db_utils_reservations import load_parking_lot_data, save_parking_lot_data, save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation  # pyright: ignore[reportUnknownVariableType]
+from DataAccesLayer.db_utils_reservations import save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation  # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 from DataModels.reservationsModel import Reservations
 from DataAccesLayer.vehicle_access import VehicleAccess
+from DataAccesLayer.db_utils_parkingLots import save_parking_lot, load_parking_lots, update_parking_lot
 
 def do_POST(self):
     if self.path == "/reservations":
@@ -21,7 +22,7 @@ def do_POST(self):
 
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
-        parking_lots = load_parking_lot_data()
+        parking_lots = load_parking_lots()
 
         for field in ["start_time", "end_time", "status", "cost", "parking_lot_id"]:
             if field not in data:
@@ -45,7 +46,7 @@ def do_POST(self):
             self.wfile.write(json.dumps({"error": "User is not registerd to any vehicle"}).encode("utf-8"))
             return
 
-        parking_lots[data["parking_lot_id"]]["reserved"] += 1
+        parking_lot = parking_lots[data["parking_lot_id"]]["reserved"] + 1
 
         user_vehicles = VehicleAccess.get_all_user_vehicles(id_of_user)
 
@@ -63,7 +64,7 @@ def do_POST(self):
         )
 
         save_reservation_data(new_reservation)
-        save_parking_lot_data(parking_lots)
+        update_parking_lot(parking_lot["id"], parking_lot)
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")
@@ -208,7 +209,7 @@ def do_DELETE(self):
     # cancelation must be 24 hours before the starts_time
     if self.path.startswith("/reservations/"):
         reservations_data = load_reservation_data()
-        parking_lots = load_parking_lot_data()
+        parking_lots = load_parking_lots()
         rid = self.path.replace("/reservations/", "").strip("/")
 
         if rid:
