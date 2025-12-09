@@ -10,7 +10,7 @@ def create_user(user_data):
     response = requests.post(f"{BASE_URL}/login", json=user_data)
     return response.json()
 
-def test_get_user_get_own_history():
+def test_user_get_history_self():
     DummyUser = {
         "username": "user",
         "password": "123",
@@ -32,7 +32,7 @@ def test_get_user_get_own_history():
     body = response.json()
     assert len(body.history) > 0
 
-def test_get_user_get_other_user_history():
+def test_user_get_history_other_user():
     DummyUserOne = {
         "username": "user_one",
         "password": "123",
@@ -60,7 +60,7 @@ def test_get_user_get_other_user_history():
 
     assert response.status_code == 401
 
-def test_get_admin_get_other_user_history():
+def test_admin_get_history_other_user():
     DummyAdmin = {
         "username": "user_one",
         "password": "123",
