@@ -1,4 +1,5 @@
 import requests
+from DataAccesLayer.db_utils_users import load_users, update_user_data
 import pytest
 
 BASE_URL = "http://localhost:8000"
@@ -58,3 +59,36 @@ def test_get_user_get_other_user_history():
     response = requests.get(f"{BASE_URL}/history/{user_data_two.get("user_id")}", headers=auth)
 
     assert response.status_code == 401
+
+def test_get_admin_get_other_user_history():
+    DummyAdmin = {
+        "username": "user_one",
+        "password": "123",
+        "name": "Test D. Ummy",
+        "email": "me@test-one.com",
+        "phone": "+31 06 00000001",
+        "birth_year": 1969
+    }
+
+    DummyUser = {
+        "username": "user_two",
+        "password": "123",
+        "name": "Test D. Ummy",
+        "email": "me@test-two.com",
+        "phone": "+31 06 00000002",
+        "birth_year": 1969
+    }
+
+    admin_data = create_user(DummyAdmin)
+    auth = { "Authorization": admin_data.get("session_token") }
+
+    admin = next((user for user in load_users() if user.id == admin_data.get("user_id")))
+    admin.role = "ADMIN"
+    update_user_data(admin)
+
+    user_data = create_user(DummyUser)
+
+    response = requests.get(f"{BASE_URL}/history/{user_data.get("user_id")}", headers=auth)
+
+    assert response.status_code == 200
+
