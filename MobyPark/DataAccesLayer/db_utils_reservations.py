@@ -180,14 +180,18 @@ def delete_reservation(reservation: Reservations):
             conn.close()
 
 
+def delete_reservations_after_id():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
+        cursor.execute("DELETE FROM reservations WHERE id > %s", (2000,))
+        conn.commit()
 
-
-
-
-
-
-
-
-
-
+        return "success"
+    except Exception:
+        conn.rollback()
+        return "error"
+    finally:
+        cursor.close()
+        conn.close()

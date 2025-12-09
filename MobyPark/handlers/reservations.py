@@ -45,8 +45,6 @@ def do_POST(self):
             self.wfile.write(json.dumps({"error": "User is not registerd to any vehicle"}).encode("utf-8"))
             return
 
-        parking_lots[data["parking_lot_id"]]["reserved"] += 1
-
         user_vehicles = VehicleAccess.get_all_user_vehicles(id_of_user)
 
         new_reservation = Reservations(
@@ -63,7 +61,6 @@ def do_POST(self):
         )
 
         save_reservation_data(new_reservation)
-        save_parking_lot_data(parking_lots)
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")

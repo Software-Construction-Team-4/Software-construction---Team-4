@@ -20,8 +20,8 @@ db = mysql.connector.connect(
 #         password="Kikkervis66!",
 #         database="mobypark"
 #     )
-cursor = db.cursor()
 
+cursor = db.cursor()
 
 class UserAlreadyHasVehicleError(Exception):
     """Raised when a user tries to create more than one vehicle."""
@@ -133,3 +133,16 @@ class VehicleAccess:
                 updated_at=row[8]
             )
         return None
+
+    @staticmethod
+    def delete_vehicles_after_id():
+        try:
+            cursor.execute(
+                f"DELETE FROM {VehicleAccess.TABLE} WHERE id > %s",
+                (14210,)
+            )
+            db.commit()
+            return "success"
+        except Exception:
+            db.rollback()
+            return "error"
