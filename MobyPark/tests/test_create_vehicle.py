@@ -1,33 +1,70 @@
-# import requests
-# import pytest
+# # test_vehicles.py
+
 # import uuid
+# import pytest
+# import requests
+# import random
+
+# from DataAccesLayer.vehicle_access import VehicleAccess
+# from DataAccesLayer.db_utils_users import delete as delete_user  # delete user by id
+
 
 # BASE_URL = "http://localhost:8000"
 
 
+# random_user = {
+#     "username": f"sezeven_{random.randint(1000,9999)}",
+#     "password": "321",
+#     "name": "sezeven Hashemy",
+#     "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
+#     "phone": f"+99{random.randint(10000000, 99999999)}",
+#     "birth_year": 2000
+# }
+
 # def get_session_token(user_data):
 #     response = requests.post(f"{BASE_URL}/login", json=user_data)
-#     return response.json().get("session_token")
+
+#     if response.status_code != 200:
+#         print("LOGIN FAILED", response.text)
+#         pytest.fail("Login failed")
+
+#     return response.json()
+
+# register_response = requests.post(f"{BASE_URL}/register", json=random_user)
+
+# if register_response.status_code != 201:
+#     pytest.fail("User registration failed")
+
+# user_data = get_session_token(random_user)
+# token = user_data.get("session_token")
+# user_id = user_data.get("user_id")
+# headers = {"Authorization": token}
 
 
-# def make_unique_user():
-#     """
-#     Create a user payload with a random suffix so each test run
-#     gets a fresh user with no existing vehicles in the DB.
-#     """
-#     suffix = uuid.uuid4().hex[:8]
-#     return {
-#         "username": f"vehicle_user_one_{suffix}",
-#         "password": "321",
-#         "name": "Vehicle User One",
-#         "email": f"vehicle_user_one_{suffix}@gmail.com",
-#         "phone": "+31022290000",
-#         "birth_year": 2000,
+# @pytest.fixture
+# def dummy_user_with_cleanup():
+
+
+#     yield {
+#         "user": random_user,
+#         "headers": headers,
+#         "user_id": user_id,
 #     }
 
 
-# def test_post_vehicles_endpoint():
-#     DummyUserOne = make_unique_user()
+#     try:
+#         vehicles = VehicleAccess.get_all_user_vehicles(user_id)
+#         for v in vehicles:
+#             VehicleAccess.delete(v)
+
+#         delete_user(user_id)
+
+#     except Exception as e:
+#         print(f"[TEST CLEANUP ERROR] {e}")
+
+
+# def test_post_vehicles_endpoint(dummy_user_with_cleanup):
+#     headers1 = dummy_user_with_cleanup["headers"]
 
 #     IncompleteVehicle = {
 #         "license_plate": "99-XYZ-1",
@@ -44,17 +81,21 @@
 #         "year": "2022",
 #     }
 
-#     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
-#     token1 = get_session_token(DummyUserOne)
-#     headers1 = {"Authorization": token1}
-
-#     response = requests.post(f"{BASE_URL}/vehicles", json=IncompleteVehicle, headers=headers1)
+#     response = requests.post(
+#         f"{BASE_URL}/vehicles",
+#         json=IncompleteVehicle,
+#         headers=headers1
+#     )
 #     assert response.status_code == 400
 #     data = response.json()
 #     assert data["error"] == "Missing required fields"
 #     assert "color" in data["fields"]
 
-#     response = requests.post(f"{BASE_URL}/vehicles", json=ValidVehicle, headers=headers1)
+#     response = requests.post(
+#         f"{BASE_URL}/vehicles",
+#         json=ValidVehicle,
+#         headers=headers1
+#     )
 #     assert response.status_code == 201
 
 #     vehicle_data = response.json()
@@ -66,9 +107,13 @@
 #     assert str(vehicle_data["vehicle"]["year"]) == str(ValidVehicle["year"])
 
 #     vehicle_id = vehicle_data["vehicle"]["id"]
+#     assert vehicle_id is not None
 
-#     response = requests.post(f"{BASE_URL}/vehicles", json=ValidVehicle, headers=headers1)
+#     response = requests.post(
+#         f"{BASE_URL}/vehicles",
+#         json=ValidVehicle,
+#         headers=headers1
+#     )
 #     assert response.status_code == 409
 #     data = response.json()
 #     assert data["error"] == "User already has a vehicle"
-
