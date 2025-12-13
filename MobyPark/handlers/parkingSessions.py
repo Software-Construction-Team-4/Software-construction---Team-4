@@ -37,15 +37,7 @@ def _same_user_id(a, b) -> bool:
 def do_GET(self):
     parts = self.path.strip("/").split("/")
 
-    if len(parts) >= 2 and parts[0] == "parking-lots" and parts[1] == "sessions":
-        session_user = _get_authenticated_user(self)
-        if not session_user:
-            _unauthorized(self)
-            return
-
-        admin = _is_admin(session_user)
-        current_user_id = session_user.get("user_id")
-
+    if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
         lot_id = parts[2] if len(parts) == 3 else None
         sessions = load_sessions(lot_id)
 
@@ -77,71 +69,71 @@ def do_POST(self):
     parts = self.path.strip("/").split("/")
 
     if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "start":
-        session_user = _get_authenticated_user(self)
+        token = self.headers.get("Authorization")
+        session_user = get_session(token) if token else None
         if not session_user:
-            _unauthorized(self)
+            send_json(self, 401, {"error": "Unauthorized"})
             return
 
         content_length = int(self.headers.get("Content-Length", 0))
         try:
-            data = json.loads(self.rfile.read(content_length) or b"{}")
-        except json.JSONDecodeError:
-            _bad_request(self, "Invalid JSON body")
+            data = json.loads(self.rfile.read(content_length))
+        except Exception:
+            send_json(self, 400, {"error": "Invalid JSON"})
             return
 
         parking_lot_id = data.get("parking_lot_id")
         licenseplate = data.get("licenseplate")
         if not parking_lot_id or not licenseplate:
-            _bad_request(self, "Missing parking_lot_id or licenseplate")
+            send_json(self, 400, {"error": "Missing data"})
             return
 
-        session_id = start_session(parking_lot_id, licenseplate, session_user.get("user_id"))
+        result = start_session(parking_lot_id, licenseplate, session_user.get("user_id"))
 
-        if session_id is None:
-            send_json(self, 409, {
-                "error": "Active session already exists for this license plate in this parking lot"
-            })
+        if not result.get("ok"):
+            send_json(self, 409, result)
             return
 
-        send_json(self, 201, {"session_id": session_id})
+        send_json(self, 201, {"session_id": result["session_id"]})
         return
 
     if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "stop":
-        session_user = _get_authenticated_user(self)
+        token = self.headers.get("Authorization")
+        session_user = get_session(token) if token else None
         if not session_user:
-            _unauthorized(self)
+            send_json(self, 401, {"error": "Unauthorized"})
             return
 
         content_length = int(self.headers.get("Content-Length", 0))
         try:
-            data = json.loads(self.rfile.read(content_length) or b"{}")
-        except json.JSONDecodeError:
-            _bad_request(self, "Invalid JSON body")
+            data = json.loads(self.rfile.read(content_length))
+        except Exception:
+            send_json(self, 400, {"error": "Invalid JSON"})
             return
 
         parking_lot_id = data.get("parking_lot_id")
         licenseplate = data.get("licenseplate")
         if not parking_lot_id or not licenseplate:
-            _bad_request(self, "Missing parking_lot_id or licenseplate")
+            send_json(self, 400, {"error": "Missing data"})
             return
 
-        session = stop_session(parking_lot_id, licenseplate)
-        if session:
-            session_dict = {
-                "id": session.id,
-                "parking_lot_id": session.parking_lot_id,
-                "user_id": session.user_id,
-                "licenseplate": session.licenseplate,
-                "started": session.started,
-                "stopped": session.stopped,
-                "duration_minutes": session.duration_minutes,
-                "cost": session.cost,
-                "payment_status": session.payment_status,
-            }
-            send_json(self, 200, session_dict)
+        session = stop_session(parking_lot_id, licenseplate) 
+        if not session:
+            send_json(self, 404, {"error": "No active session found for this plate in this parking lot"})
             return
 
-        send_json(self, 404, {"error": "No active session found for this license plate in this parking lot"})
+        session_dict = {
+            "id": session.id,
+            "parking_lot_id": session.parking_lot_id,
+            "user_id": session.user_id,
+            "licenseplate": session.licenseplate,
+            "started": session.started,
+            "stopped": session.stopped,
+            "duration_minutes": session.duration_minutes,
+            "cost": session.cost,
+            "payment_status": session.payment_status,
+        }
+        send_json(self, 200, session_dict)
         return
 
     send_json(self, 404, {"error": "Invalid route"})
