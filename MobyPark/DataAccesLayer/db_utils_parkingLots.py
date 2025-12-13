@@ -74,14 +74,14 @@ def save_parking_lot(lot_data):
             lot_data.get("longitude"),
             lot_data.get("status", "open"),
             lot_data.get("closed_reason"),
-            lot_data.get("closed_date"),
-            0
+            lot_data.get("closed_date")
         ))
         conn.commit()
         return cursor.lastrowid
     finally:
         cursor.close()
         conn.close()
+
 
 def update_parking_lot(lot_id, data):
     conn = get_db_connection()
