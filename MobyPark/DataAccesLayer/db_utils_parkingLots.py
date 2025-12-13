@@ -83,6 +83,7 @@ def save_parking_lot(lot_data):
         cursor.close()
         conn.close()
 
+
 def update_parking_lot(lot_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
