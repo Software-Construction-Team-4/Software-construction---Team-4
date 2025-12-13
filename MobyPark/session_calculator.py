@@ -52,11 +52,5 @@ def generate_payment_hash():
 def check_payment_amount(tx_hash):
     data_access = PaymentsDataAccess()
 
-    return data_access.get_by_transaction_hash(tx_hash)
-    total = 0.0
-
-    for payment in payments:
-        if payment["transaction"] == tx_hash:
-            total += payment["amount"]
-
-    return total
+    payment = data_access.get_by_transaction_hash(tx_hash)
+    return payment.amount
