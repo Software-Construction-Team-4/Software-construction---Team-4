@@ -1,6 +1,7 @@
 import mysql.connector
 from DataModels.parkingSessionModel import ParkingSession
 
+
 def get_db_connection():
     return mysql.connector.connect(
         host="145.24.237.71",
@@ -10,39 +11,68 @@ def get_db_connection():
         database="mobypark"
     )
 
+
 def _row_to_parking_session(row):
     return ParkingSession(
-        id=row['id'],
-        parking_lot_id=row['parking_lot_id'],
+        id=row["id"],
+        parking_lot_id=row["parking_lot_id"],
         session=row["session"],
-        user_id=row['user'],
-        licenseplate=row['licenseplate'],
-        started=row['started'],
-        stopped=row['stopped'],
-        duration_minutes=row['duration_minutes'],
-        cost=row['cost'],
-        payment_status=row['payment_status']
+        user_id=row["user"],
+        licenseplate=row["licenseplate"],
+        started=row["started"],
+        stopped=row["stopped"],
+        duration_minutes=row["duration_minutes"],
+        cost=row["cost"],
+        payment_status=row["payment_status"]
     )
 
+
 def start_session(parking_lot_id, licenseplate, user_id):
+    """
+    NEW behavior:
+    - A license plate may have only 1 active (stopped IS NULL) session total,
+      across ALL parking lots.
+    Returns:
+      {"ok": True, "session_id": <id>}
+      {"ok": False, "error": "...", "active_session": {...}}
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
         cursor.execute(
-            "SELECT id FROM parking_sessions WHERE parking_lot_id=%s AND licenseplate=%s AND stopped IS NULL",
-            (parking_lot_id, licenseplate)
+            """
+            SELECT id, parking_lot_id, started
+            FROM parking_sessions
+            WHERE licenseplate = %s AND stopped IS NULL
+            LIMIT 1
+            """,
+            (licenseplate,)
         )
-        if cursor.fetchone():
-            return None
+        existing = cursor.fetchone()
+        if existing:
+            return {
+                "ok": False,
+                "error": "Active session already exists for this license plate",
+                "active_session": {
+                    "id": existing["id"],
+                    "parking_lot_id": existing["parking_lot_id"],
+                    "started": existing["started"],
+                }
+            }
 
         cursor.execute(
             "SELECT COALESCE(MAX(session), 0) + 1 AS next_num FROM parking_sessions WHERE parking_lot_id=%s",
             (parking_lot_id,)
         )
-        next_session_number = cursor.fetchone()['next_num']
+        next_session_number = cursor.fetchone()["next_num"]
 
         cursor.execute(
-            "INSERT INTO parking_sessions (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session) VALUES (%s,%s,NOW(),%s,0,0,'pending',%s)",
+            """
+            INSERT INTO parking_sessions
+              (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session)
+            VALUES
+              (%s, %s, NOW(), %s, 0, 0, 'pending', %s)
+            """,
             (parking_lot_id, licenseplate, user_id, next_session_number)
         )
 
@@ -52,10 +82,11 @@ def start_session(parking_lot_id, licenseplate, user_id):
         )
 
         conn.commit()
-        return cursor.lastrowid
+        return {"ok": True, "session_id": cursor.lastrowid}
     finally:
         cursor.close()
         conn.close()
+
 
 def stop_session(parking_lot_id, licenseplate):
     conn = get_db_connection()
@@ -71,11 +102,19 @@ def stop_session(parking_lot_id, licenseplate):
 
         cursor.execute("SELECT tariff FROM parking_lots WHERE id=%s", (parking_lot_id,))
         lot = cursor.fetchone()
-        tariff = lot['tariff'] if lot else 0
+        tariff = lot["tariff"] if lot else 0
 
         cursor.execute(
-            "UPDATE parking_sessions SET stopped=NOW(), duration_minutes=TIMESTAMPDIFF(MINUTE, started, NOW()), cost=TIMESTAMPDIFF(MINUTE, started, NOW())*%s/60, payment_status='unpaid' WHERE id=%s",
-            (tariff, session['id'])
+            """
+            UPDATE parking_sessions
+            SET
+              stopped = NOW(),
+              duration_minutes = TIMESTAMPDIFF(MINUTE, started, NOW()),
+              cost = TIMESTAMPDIFF(MINUTE, started, NOW()) * %s / 60,
+              payment_status = 'unpaid'
+            WHERE id = %s
+            """,
+            (tariff, session["id"])
         )
 
         cursor.execute(
@@ -85,12 +124,13 @@ def stop_session(parking_lot_id, licenseplate):
 
         conn.commit()
 
-        cursor.execute("SELECT * FROM parking_sessions WHERE id=%s", (session['id'],))
+        cursor.execute("SELECT * FROM parking_sessions WHERE id=%s", (session["id"],))
         updated_session = cursor.fetchone()
         return _row_to_parking_session(updated_session)
     finally:
         cursor.close()
         conn.close()
+
 
 def load_sessions(parking_lot_id=None):
     conn = get_db_connection()
@@ -100,11 +140,13 @@ def load_sessions(parking_lot_id=None):
             cursor.execute("SELECT * FROM parking_sessions WHERE parking_lot_id=%s", (parking_lot_id,))
         else:
             cursor.execute("SELECT * FROM parking_sessions")
+
         rows = cursor.fetchall()
-        return {str(row['id']): _row_to_parking_session(row) for row in rows}
+        return {str(row["id"]): _row_to_parking_session(row) for row in rows}
     finally:
         cursor.close()
         conn.close()
+
 
 def load_sessions_by_userID(user):
     conn = get_db_connection()

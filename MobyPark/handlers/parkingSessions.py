@@ -12,6 +12,7 @@ def send_json(self, status_code, data):
 
 def do_GET(self):
     parts = self.path.strip("/").split("/")
+
     if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
         lot_id = parts[2] if len(parts) == 3 else None
         sessions = load_sessions(lot_id)
@@ -40,80 +41,71 @@ def do_POST(self):
     parts = self.path.strip("/").split("/")
 
     if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "start":
-        token = self.headers.get('Authorization')
-        if not token or not get_session(token):
-            self.send_response(401)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Unauthorized")
+        token = self.headers.get("Authorization")
+        session_user = get_session(token) if token else None
+        if not session_user:
+            send_json(self, 401, {"error": "Unauthorized"})
             return
 
-        session_user = get_session(token)
         content_length = int(self.headers.get("Content-Length", 0))
-        data = json.loads(self.rfile.read(content_length))
+        try:
+            data = json.loads(self.rfile.read(content_length))
+        except Exception:
+            send_json(self, 400, {"error": "Invalid JSON"})
+            return
 
         parking_lot_id = data.get("parking_lot_id")
         licenseplate = data.get("licenseplate")
         if not parking_lot_id or not licenseplate:
-            self.send_response(400)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Missing data")
+            send_json(self, 400, {"error": "Missing data"})
             return
 
-        session_id = start_session(parking_lot_id, licenseplate, session_user.get("user_id"))
+        result = start_session(parking_lot_id, licenseplate, session_user.get("user_id"))
 
-        if session_id is None:
-            self.send_response(409)  # Conflict
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({
-                "error": "Active session already exists for this license plate in this parking lot"
-            }).encode("utf-8"))
+        if not result.get("ok"):
+            send_json(self, 409, result)
             return
 
-        self.send_response(201)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({"session_id": session_id}).encode("utf-8"))
+        send_json(self, 201, {"session_id": result["session_id"]})
         return
 
     if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "stop":
-        token = self.headers.get('Authorization')
-        if not token or not get_session(token):
-            self.send_response(401)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Unauthorized")
+        token = self.headers.get("Authorization")
+        session_user = get_session(token) if token else None
+        if not session_user:
+            send_json(self, 401, {"error": "Unauthorized"})
             return
 
         content_length = int(self.headers.get("Content-Length", 0))
-        data = json.loads(self.rfile.read(content_length))
+        try:
+            data = json.loads(self.rfile.read(content_length))
+        except Exception:
+            send_json(self, 400, {"error": "Invalid JSON"})
+            return
 
         parking_lot_id = data.get("parking_lot_id")
         licenseplate = data.get("licenseplate")
         if not parking_lot_id or not licenseplate:
-            self.send_response(400)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Missing data")
+            send_json(self, 400, {"error": "Missing data"})
             return
 
-        session = stop_session(parking_lot_id, licenseplate)  # ParkingSession or None
-        if session:
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            # Explicitly serialize the ParkingSession
-            session_dict = {
-                "id": session.id,
-                "parking_lot_id": session.parking_lot_id,
-                "user_id": session.user_id,
-                "licenseplate": session.licenseplate,
-                "started": session.started,
-                "stopped": session.stopped,
-                "duration_minutes": session.duration_minutes,
-                "cost": session.cost,
-                "payment_status": session.payment_status,
-            }
-            self.wfile.write(json.dumps(session_dict, default=str).encode("utf-8"))
+        session = stop_session(parking_lot_id, licenseplate) 
+        if not session:
+            send_json(self, 404, {"error": "No active session found for this plate in this parking lot"})
+            return
+
+        session_dict = {
+            "id": session.id,
+            "parking_lot_id": session.parking_lot_id,
+            "user_id": session.user_id,
+            "licenseplate": session.licenseplate,
+            "started": session.started,
+            "stopped": session.stopped,
+            "duration_minutes": session.duration_minutes,
+            "cost": session.cost,
+            "payment_status": session.payment_status,
+        }
+        send_json(self, 200, session_dict)
+        return
+
+    send_json(self, 404, {"error": "Invalid route"})
