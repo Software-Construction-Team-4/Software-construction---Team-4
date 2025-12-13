@@ -66,7 +66,8 @@ def do_POST(self):
             send_json(self, 409, result)
             return
 
-        send_json(self, 201, {"session_id": result["session_id"]})
+        # send_json(self, 201, {"session_id": result["session_id"]})
+        send_json(self, 201, {"message": "Your session has started"})
         return
 
     if len(parts) == 3 and parts[0] == "parking-lots" and parts[1] == "sessions" and parts[2] == "stop":
