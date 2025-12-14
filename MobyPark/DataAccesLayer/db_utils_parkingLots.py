@@ -1,5 +1,6 @@
 import mysql.connector
 from DataModels.parkingLotsModel import ParkingLot
+from DataAccesLayer.db_utils_reservations import get_today_reservations_count_by_lot
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -17,16 +18,16 @@ def _row_to_parking_lot(row):
         location=row["location"],
         address=row["address"],
         capacity=row["capacity"],
-        active_sessions=row["active_sessions"] or 0,
-        reserved=row["reserved"],
-        tariff=row["tariff"],
-        daytariff=row["daytariff"],
-        created_at=row["created_at"],
-        latitude=row["latitude"],
-        longitude=row["longitude"],
-        status=row["status"],
-        closed_reason=row["closed_reason"],
-        closed_date=row["closed_date"],
+        active_sessions=row.get("active_sessions", 0) or 0,
+        reserved=row.get("reserved", 0) or 0,
+        tariff=row.get("tariff", 0),
+        daytariff=row.get("daytariff", 0),
+        created_at=row.get("created_at"),
+        latitude=row.get("latitude"),
+        longitude=row.get("longitude"),
+        status=row.get("status"),
+        closed_reason=row.get("closed_reason"),
+        closed_date=row.get("closed_date"),
     )
 
 def load_parking_lots():
@@ -35,7 +36,27 @@ def load_parking_lots():
     try:
         cursor.execute("SELECT * FROM parking_lots")
         rows = cursor.fetchall()
-        return {str(row["id"]): _row_to_parking_lot(row) for row in rows}
+        today_reserved = get_today_reservations_count_by_lot()
+
+
+        lots = {}
+        for row in rows:
+            lot_id = str(row["id"])
+            reserved_count = today_reserved.get(lot_id, 0)
+            row["reserved"] = reserved_count
+            update_parking_lot(lot_id, {"reserved": reserved_count})
+
+            cursor.execute(
+                "SELECT COUNT(*) as active_count FROM parking_sessions WHERE parking_lot_id=%s AND stopped IS NULL",
+                (lot_id,)
+            )
+            active_count = cursor.fetchone()["active_count"]
+            row["active_sessions"] = active_count
+            update_parking_lot(lot_id, {"active_sessions": active_count})
+
+            lots[lot_id] = _row_to_parking_lot(row)
+
+        return lots
     finally:
         cursor.close()
         conn.close()
@@ -48,12 +69,26 @@ def load_parking_lot_by_id(lot_id):
         row = cursor.fetchone()
         if not row:
             return None
+
+        today_reserved = get_today_reservations_count_by_lot()
+        reserved_count = today_reserved.get(str(lot_id), 0)
+        row["reserved"] = reserved_count
+        update_parking_lot(lot_id, {"reserved": reserved_count})
+
+        cursor.execute(
+            "SELECT COUNT(*) as active_count FROM parking_sessions WHERE parking_lot_id=%s AND stopped IS NULL",
+            (lot_id,)
+        )
+        active_count = cursor.fetchone()["active_count"]
+        row["active_sessions"] = active_count
+        update_parking_lot(lot_id, {"active_sessions": active_count})
+
         return _row_to_parking_lot(row)
     finally:
         cursor.close()
         conn.close()
 
-def save_parking_lot(lot_data):
+def save_parking_lot(data):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -63,19 +98,18 @@ def save_parking_lot(lot_data):
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """
         cursor.execute(sql, (
-            lot_data.get("name"),
-            lot_data.get("location"),
-            lot_data.get("address"),
-            lot_data.get("capacity"),
-            lot_data.get("active_sessions", 0),
-            lot_data.get("reserved", 0),
-            lot_data.get("tariff", 0),
-            lot_data.get("daytariff", 0),
-            lot_data.get("latitude"),
-            lot_data.get("longitude"),
-            lot_data.get("status", "open"),
-            lot_data.get("closed_reason"),
-            lot_data.get("closed_date")
+            data.get("name"),
+            data.get("location"),
+            data.get("address"),
+            data.get("capacity"),
+            data.get("reserved", 0),
+            data.get("tariff", 0),
+            data.get("daytariff", 0),
+            data.get("latitude"),
+            data.get("longitude"),
+            data.get("status", "open"),
+            data.get("closed_reason"),
+            data.get("closed_date")
         ))
         conn.commit()
         return cursor.lastrowid
@@ -83,12 +117,11 @@ def save_parking_lot(lot_data):
         cursor.close()
         conn.close()
 
-
 def update_parking_lot(lot_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        allowed_fields = ["name","location","address","capacity","reserved","tariff","daytariff","latitude","longitude","status","closed_reason","closed_date"]
+        allowed_fields = ["name","location","address","capacity","reserved","tariff","daytariff","latitude","longitude","status","closed_reason","closed_date","active_sessions"]
         updates = [f"{k}=%s" for k in data if k in allowed_fields]
         values = [data[k] for k in data if k in allowed_fields]
         if updates:
@@ -111,15 +144,13 @@ def delete_parking_lot(lot_id):
         conn.close()
 
 def increment_active_sessions(lot_id, delta=1):
-    """Safely increment or decrement active_sessions (delta can be negative)."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            UPDATE parking_lots
-            SET active_sessions = GREATEST(COALESCE(active_sessions,0) + %s, 0)
-            WHERE id=%s
-        """, (delta, lot_id))
+        cursor.execute(
+            "UPDATE parking_lots SET active_sessions = GREATEST(COALESCE(active_sessions,0) + %s, 0) WHERE id=%s",
+            (delta, lot_id)
+        )
         conn.commit()
     finally:
         cursor.close()

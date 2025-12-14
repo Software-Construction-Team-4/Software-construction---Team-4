@@ -6,6 +6,9 @@ from DataModels.reservationsModel import Reservations
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_parkingLots import save_parking_lot, load_parking_lots, update_parking_lot
 
+def update_parking_lot_reserved(lot_id, delta=1):
+    update_parking_lot(lot_id, {"reserved": delta})
+
 def do_POST(self):
     if self.path == "/reservations":
         token = self.headers.get('Authorization')
@@ -17,9 +20,7 @@ def do_POST(self):
             return
 
         session_user = get_session(token)
-
         id_of_user = session_user.get("user_id")
-
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
         parking_lots = load_parking_lots()
@@ -43,7 +44,7 @@ def do_POST(self):
             self.send_response(404)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "User is not registerd to any vehicle"}).encode("utf-8"))
+            self.wfile.write(json.dumps({"error": "User is not registered to any vehicle"}).encode("utf-8"))
             return
 
         user_vehicles = VehicleAccess.get_all_user_vehicles(id_of_user)
@@ -62,6 +63,9 @@ def do_POST(self):
         )
 
         save_reservation_data(new_reservation)
+
+        if new_reservation.status == "confirmed":
+            update_parking_lot_reserved(new_reservation.parking_lot_id, delta=1)
 
         self.send_response(201)
         self.send_header("Content-type", "application/json")
@@ -132,6 +136,14 @@ def do_PUT(self):
             updated_at=datetime.now()
         )
 
+        # Update reserved count based on status change
+        old_status = found_res_dict.get("status")
+        new_status = data["status"]
+        if old_status != "confirmed" and new_status == "confirmed":
+            update_parking_lot_reserved(updated_reservation.parking_lot_id, delta=1)
+        elif old_status == "confirmed" and new_status != "confirmed":
+            update_parking_lot_reserved(updated_reservation.parking_lot_id, delta=-1)
+
         update_reservation_data(updated_reservation)
 
         self.send_response(200)
@@ -150,8 +162,6 @@ def do_GET(self):
 
         if rid:
             found_res_dict = next((r for r in reservations_data if str(r["id"]) == str(rid)), None)
-            
-
             if not found_res_dict:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
@@ -202,8 +212,6 @@ def do_GET(self):
 
 
 def do_DELETE(self):
-    # this shouldnt delete a reservation but keep it and update the status to cancelled
-    # cancelation must be 24 hours before the starts_time
     if self.path.startswith("/reservations/"):
         reservations_data = load_reservation_data()
         parking_lots = load_parking_lots()
@@ -211,7 +219,6 @@ def do_DELETE(self):
 
         if rid:
             found_res_dict = next((r for r in reservations_data if str(r.get("id")) == str(rid)), None)
-
             if not found_res_dict:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
@@ -268,15 +275,11 @@ def do_DELETE(self):
                 self.wfile.write(json.dumps(message).encode("utf-8"))
                 return
 
-
             pid = reservation.parking_lot_id
-            if pid in parking_lots:
-                parking_lots[pid]["reserved"] -= 1
-
-            # delete_reservation(reservation)
+            if reservation.status == "confirmed" and pid in parking_lots:
+                update_parking_lot_reserved(pid, delta=-1)
 
             reservation.status = "canceled"
-
             update_reservation_data(reservation)
 
             self.send_response(200)
@@ -284,4 +287,3 @@ def do_DELETE(self):
             self.end_headers()
             self.wfile.write(json.dumps({"status": "Canceled"}).encode("utf-8"))
             return
-
