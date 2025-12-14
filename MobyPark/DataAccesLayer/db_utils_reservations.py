@@ -1,5 +1,6 @@
 import mysql.connector
 from DataModels.reservationsModel import Reservations
+from datetime import date
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -10,18 +11,6 @@ def get_db_connection():
         database="mobypark"
     )
 
-# def get_db_connection():
-#     return mysql.connector.connect(
-#         host="localhost",
-#         port=3306,
-#         user="root",
-#         password="Kikkervis66!",
-#         database="mobypark"
-#     )
-
-
-
-
 def load_reservation_data():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -30,7 +19,6 @@ def load_reservation_data():
     cursor.close()
     conn.close()
     return result
-
 
 def save_reservation_data(reservation: Reservations):
     if not isinstance(reservation, Reservations):
@@ -42,13 +30,7 @@ def save_reservation_data(reservation: Reservations):
     try:
         cursor.execute("SELECT id FROM reservations ORDER BY id DESC LIMIT 1")
         newest = cursor.fetchone()
-
-        if newest is None or newest["id"] is None:
-            next_id = 1
-        else:
-            next_id = newest["id"] + 1
-
-        reservation.id = next_id
+        reservation.id = 1 if newest is None else newest["id"] + 1
 
         data = reservation.to_dict()
 
@@ -64,14 +46,9 @@ def save_reservation_data(reservation: Reservations):
         cursor.execute(sql, data)
         conn.commit()
 
-    except Exception as e:
-        print(f"Error saving reservation: {e}")
-
     finally:
         cursor.close()
         conn.close()
-
-
 
 def update_reservation_data(reservation: Reservations):
     if not isinstance(reservation, Reservations):
@@ -95,7 +72,6 @@ def update_reservation_data(reservation: Reservations):
     }
 
     updates = {k: v for k, v in fields.items() if v is not None}
-
     if not updates:
         return
 
@@ -105,7 +81,6 @@ def update_reservation_data(reservation: Reservations):
     try:
         cursor.execute(sql, values)
         conn.commit()
-
     finally:
         cursor.close()
         conn.close()
@@ -113,48 +88,36 @@ def update_reservation_data(reservation: Reservations):
 def delete_reservation(reservation: Reservations):
     if not isinstance(reservation, Reservations):
         raise TypeError("reservation must be a Reservations instance")
+    if reservation.id is None:
+        raise ValueError("Reservation must have an 'id' to delete")
 
-    conn = None
-    cursor = None
-
+    conn = get_db_connection()
+    cursor = conn.cursor()
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        rid = reservation.id
-        if rid is None:
-            raise ValueError("Reservation must have an 'id' to delete")
-
-        sql = "DELETE FROM reservations WHERE id = %s"
-        cursor.execute(sql, (rid,))
+        cursor.execute("DELETE FROM reservations WHERE id = %s", (reservation.id,))
         conn.commit()
-
-        print(f"Reservation {rid} deleted successfully.")
-        return {"status": "Deleted", "reservation_id": rid}
-
-    except mysql.connector.Error as e:
-        print(f"Error deleting reservation: {e}")
-        return {"error": str(e)}
-
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-def delete_reservations_after_id():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("DELETE FROM reservations WHERE id > %s", (2000,))
-        conn.commit()
-
-        return "success"
-    except Exception:
-        conn.rollback()
-        return "error"
+        return {"status": "Deleted", "reservation_id": reservation.id}
     finally:
         cursor.close()
         conn.close()
+
+
+def get_today_reservations_count_by_lot():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    today = date.today()
+
+    cursor.execute("""
+        SELECT parking_lot_id, COUNT(*) AS count
+        FROM reservations
+        WHERE DATE(start_time) <= %s
+          AND DATE(end_time) >= %s
+          AND status = 'confirmed'
+        GROUP BY parking_lot_id
+    """, (today, today))
+
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return {str(row["parking_lot_id"]): row["count"] for row in rows}
