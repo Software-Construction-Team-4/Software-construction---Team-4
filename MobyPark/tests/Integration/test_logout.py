@@ -1,15 +1,16 @@
 # import requests
 # import pytest
+# from DataAccesLayer.db_utils_users import delete
 
 # BASE_URL = "http://localhost:8000"
 
 # def test_logout():
 #     dummyuser = {
 #         "username": "sina",
-#         "password": "321",
+#         "password": "Sina321!!",
 #         "name": "Sina Hashemy",
 #         "email": "sina@gmail.com",
-#         "phone": "+31022293944",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 
@@ -17,8 +18,11 @@
 
 #     login_result = requests.post(f"{BASE_URL}/login", json={
 #         "username": "sina",
-#         "password": "321"
+#         "password": "Sina321!!"
 #     })
+
+#     data = login_result.json()
+#     user_id = data.get("user_id")
 
 #     assert login_result.status_code == 200
 
@@ -34,3 +38,5 @@
 
 #     assert result_noToken.status_code == 400
 #     assert result_noToken.text == "Invalid session token"
+
+#     delete(user_id)

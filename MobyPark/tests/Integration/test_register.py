@@ -1,15 +1,16 @@
 # import requests
 # import pytest
+# from DataAccesLayer.db_utils_users import delete
 
 # BASE_URL = "http://localhost:8000"
 
 # def test_register_endpoint():
 #     DummyUser ={
 #         "username": "test",
-#         "password": "321",
+#         "password": "Test321!",
 #         "name": "test Hashemy",
 #         "email": "test@gmail.com",
-#         "phone": "+31022293942",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 
@@ -23,3 +24,9 @@
 
 #     assert SecondResult.status_code == 200
 #     assert SecondResult.text == "Username already taken"
+
+#     FirstResult = requests.post(f"{BASE_URL}/login", json = DummyUser)
+#     data = FirstResult.json()
+#     user_id = data.get("user_id")
+
+#     delete(user_id)

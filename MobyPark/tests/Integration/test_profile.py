@@ -1,22 +1,23 @@
 # import requests
 # import pytest
+# from DataAccesLayer.db_utils_users import delete
 
 # BASE_URL = "http://localhost:8000"
 
 # def test_profile_put():
 #     dummyuser = {
 #         "username": "sina",
-#         "password": "321",
+#         "password": "Sina321!!",
 #         "name": "Sina Hashemy",
 #         "email": "sina@gmail.com",
-#         "phone": "+31022293944",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 #     requests.post(f"{BASE_URL}/register", json=dummyuser)
 
 #     login_result = requests.post(f"{BASE_URL}/login", json={
 #         "username": "sina",
-#         "password": "321"
+#         "password": "Sina321!!"
 #     })
 
 #     assert login_result.status_code == 200
@@ -26,8 +27,8 @@
 
 #     updated_dummy = {
 #         "id": login_data["user_id"],
-#         "name": "sam",
-#         "password": "123"
+#         "username": "sam",
+#         "password": "Sam321!!"
 #     }
 
 #     update_result = requests.put(f"{BASE_URL}/profile", json=updated_dummy, headers={"Authorization": token})
@@ -40,14 +41,19 @@
 #     assert result_noToken.status_code == 401
 #     assert result_noToken.text == "Unauthorized: Invalid or missing session token"
 
+#     FirstResult = requests.post(f"{BASE_URL}/login", json = updated_dummy)
+#     data = FirstResult.json()
+#     user_id = data.get("user_id")
+
+#     delete(user_id)
 
 # def test_profile_get():
 #     dummyuser = {
 #         "username": "sam",
-#         "password": "321",
-#         "name": "sam Hashemy",
+#         "password": "Sam321!!",
+#         "name": "Sam Hashemy",
 #         "email": "sam@gmail.com",
-#         "phone": "+31022293945",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 
@@ -55,8 +61,11 @@
 
 #     login_result = requests.post(f"{BASE_URL}/login", json={
 #         "username": "sam",
-#         "password": "321"
+#         "password": "Sam321!!"
 #     })
+
+#     data = login_result.json()
+#     user_id = data.get("user_id")
 
 #     assert login_result.status_code == 200
 
@@ -70,4 +79,6 @@
 #     result_noToken = requests.get(f"{BASE_URL}/profile", json = dummyuser)
 
 #     assert result_noToken.status_code == 401
+
+#     delete(user_id)
 

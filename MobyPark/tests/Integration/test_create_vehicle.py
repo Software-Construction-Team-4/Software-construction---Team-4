@@ -14,10 +14,10 @@
 
 # random_user = {
 #     "username": f"sezeven_{random.randint(1000,9999)}",
-#     "password": "321",
+#     "password": "Sez677!!",
 #     "name": "sezeven Hashemy",
 #     "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
-#     "phone": f"+99{random.randint(10000000, 99999999)}",
+#     "phone": f"+310{random.randint(100000000, 999999999)}",
 #     "birth_year": 2000
 # }
 

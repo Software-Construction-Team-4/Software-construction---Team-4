@@ -5,6 +5,7 @@ from datetime import date
 from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
 from session_manager import add_session, remove_session, get_session
 from DataModels.userModel import userModel
+from LogicLayer.userLogic import UserLogic
 
 def do_POST(self):
     if self.path == "/register":
@@ -19,6 +20,60 @@ def do_POST(self):
         hashed_password = hashlib.md5(password.encode()).hexdigest()
 
         users = load_users()
+
+        passResult = UserLogic.CheckPassword(password)
+        nameResult = UserLogic.CheckName(name)
+        emailResult = UserLogic.CheckEmail(email)
+        phoneResult = UserLogic.CheckPhone(phone)
+
+        passErrors = {
+            0: b"Password must be at least 8 characters long",
+            1: b"Password must contain at least one uppercase character",
+            2: b"Password must contain at least one lowercase character",
+            3: b"Password must contain at least one number",
+            4: b"Password must contain at least one special character"
+        }
+
+        nameErrors = {
+            0: b"You must give your first and last name",
+            1: b"Name can't contain number or special character"
+        }
+
+        emailErrors = {
+            0: b"Email can't contain a space in it",
+            1: b"Email must contain only one '@'",
+            2: b"You must have a name before the '@'",
+            3: b"your email is either missing a dot or its domain",
+            4: b"Password must contain at least one special character"
+        }
+
+        if passResult in passErrors:
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(passErrors[passResult])
+            return
+        
+        if nameResult in nameErrors:
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(nameErrors[nameResult])
+            return
+        
+        if emailResult in emailErrors:
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(emailErrors[emailResult])
+            return
+
+        if phoneResult == 0:
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Invalid phone number. Must contain only digits. Length must be 9 digits if '+' isn't provided, or 12 digits including '+' if country code is included.")
+            return
 
         for user in users:
             if username == user.username:
@@ -137,6 +192,57 @@ def do_PUT(self):
             self.end_headers()
             self.wfile.write(b"You don't have authority to update this user")
             return
+        
+        if "password" in data:
+            passResult = UserLogic.CheckPassword(data["password"])
+            passErrors = {
+                0: b"Password must be at least 8 characters long",
+                1: b"Password must contain at least one uppercase character",
+                2: b"Password must contain at least one lowercase character",
+                3: b"Password must contain at least one number",
+                4: b"Password must contain at least one special character"
+            }
+            if passResult in passErrors:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(passErrors[passResult])
+                return
+
+        if "name" in data:
+            nameResult = UserLogic.CheckName(data["name"])
+            nameErrors = {
+                0: b"You must give your first and last name",
+                1: b"Name can't contain number or special character"
+            }
+            if nameResult in nameErrors:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(nameErrors[nameResult])
+                return
+
+        if "email" in data:
+            emailResult = UserLogic.CheckEmail(data["email"])
+            emailErrors = {
+                0: b"Email can't contain a space in it",
+                1: b"Email must contain only one '@'",
+                2: b"You must have a name before the '@'",
+                3: b"Your email is missing a dot or domain"
+            }
+            if emailResult in emailErrors:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(emailErrors[emailResult])
+                return
+
+        if "phone" in data:
+            phoneResult = UserLogic.CheckPhone(data["phone"])
+            if phoneResult == 0:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(
+                    b"Invalid phone number. Must contain only digits. Length must be 9 digits without '+' or 12 digits with it."
+                )
+                return
 
         updatable_fields = [
             "username",
