@@ -1,10 +1,10 @@
 import json
 from datetime import datetime, date
-from DataAccesLayer.db_utils_reservations import save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation  # pyright: ignore[reportUnknownVariableType]
+from DataAccesLayer.db_utils_reservations import save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation, get_reservation_by_id  # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 from DataModels.reservationsModel import Reservations
 from DataAccesLayer.vehicle_access import VehicleAccess
-from DataAccesLayer.db_utils_parkingLots import save_parking_lot, load_parking_lots, update_parking_lot
+from DataAccesLayer.db_utils_parkingLots import save_parking_lot, load_parking_lots, update_parking_lot, parking_lot_exists
 
 def update_parking_lot_reserved(lot_id, delta=1):
     update_parking_lot(lot_id, {"reserved": delta})
@@ -23,7 +23,6 @@ def do_POST(self):
         id_of_user = session_user.get("user_id")
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
-        parking_lots = load_parking_lots()
 
         for field in ["start_time", "end_time", "status", "cost", "parking_lot_id"]:
             if field not in data:
@@ -33,7 +32,7 @@ def do_POST(self):
                 self.wfile.write(json.dumps({"error": "Required field missing", "field": field}).encode("utf-8"))
                 return
 
-        if data.get("parking_lot_id") not in parking_lots:
+        if not parking_lot_exists(data.get("parking_lot_id")):
             self.send_response(404)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -80,10 +79,9 @@ def do_POST(self):
 def do_PUT(self):
     if self.path.startswith("/reservations/"):
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-        reservations = load_reservation_data()
         rid = self.path.replace("/reservations/", "")
 
-        found_res_dict = next((r for r in reservations if str(r["id"]) == str(rid)), None)
+        found_res_dict = get_reservation_by_id(rid)
         if found_res_dict is None:
             self.send_response(404)
             self.send_header("Content-type", "application/json")
@@ -157,11 +155,10 @@ def do_PUT(self):
 
 def do_GET(self):
     if self.path.startswith("/reservations/"):
-        reservations_data = load_reservation_data()
         rid = self.path.replace("/reservations/", "").strip("/")
 
         if rid:
-            found_res_dict = next((r for r in reservations_data if str(r["id"]) == str(rid)), None)
+            found_res_dict = get_reservation_by_id(rid)
             if not found_res_dict:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
@@ -213,12 +210,10 @@ def do_GET(self):
 
 def do_DELETE(self):
     if self.path.startswith("/reservations/"):
-        reservations_data = load_reservation_data()
-        parking_lots = load_parking_lots()
         rid = self.path.replace("/reservations/", "").strip("/")
 
         if rid:
-            found_res_dict = next((r for r in reservations_data if str(r.get("id")) == str(rid)), None)
+            found_res_dict = get_reservation_by_id(rid)
             if not found_res_dict:
                 self.send_response(404)
                 self.send_header("Content-type", "application/json")
@@ -276,7 +271,7 @@ def do_DELETE(self):
                 return
 
             pid = reservation.parking_lot_id
-            if reservation.status == "confirmed" and pid in parking_lots:
+            if reservation.status == "confirmed" and parking_lot_exists(pid):
                 update_parking_lot_reserved(pid, delta=-1)
 
             reservation.status = "canceled"

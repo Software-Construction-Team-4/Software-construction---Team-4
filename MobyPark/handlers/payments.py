@@ -266,45 +266,66 @@ def do_GET(self):
         return
 
 
-# def do_GET_test(self):
-#     if self.path.startswith("/billing/"):
-#         token = self.headers.get('Authorization')
-#         if not token or not get_session(token):
-#             self.send_response(401)
-#             self.send_header("Content-type", "application/json")
-#             self.end_headers()
-#             self.wfile.write(b"Unauthorized: Invalid or missing session token")
-#             return
+    if self.path.startswith("/billing/"):
+        token = self.headers.get('Authorization')
+        if not token or not get_session(token):
+            self.send_response(401)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Unauthorized: Invalid or missing session token")
+            return
 
-#         session_user = get_session(token)
-#         if session_user.get('role') != "ADMIN":
-#             self.send_response(403)
-#             self.send_header("Content-type", "application/json")
-#             self.end_headers()
-#             self.wfile.write(b"Access denied")
-#             return
+        session_user = get_session(token)
+        if session_user.get('role') != "ADMIN":
+            self.send_response(403)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Access denied")
+            return
 
-#         user = self.path.replace("/billing/", "")
-#         data = []
-#         parking_data = load_parking_lot_data()
-#         for pid, parkinglot in parking_data.items():
-#             sessions = load_json(f'data/pdata/p{pid}-sessions.json', default={})
-#             for sid, session in sessions.items():
-#                 if session.get("user") == user:
-#                     amount, hours, days = sc.calculate_price(parkinglot, sid, session)
-#                     transaction = sc.generate_transaction_validation_hash(sid, session.get("licenseplate"))
-#                     payed = sc.check_payment_amount(transaction)
-#                     data.append({
-#                         "session": {k: v for k, v in session.items() if k in ["licenseplate", "started", "stopped"]} | {"hours": hours, "days": days},
-#                         "parking": {k: v for k, v in parkinglot.items() if k in ["name", "location", "tariff", "daytariff"]},
-#                         "amount": amount,
-#                         "thash": transaction,
-#                         "payed": payed,
-#                         "balance": amount - payed
-#                     })
+        user = self.path.replace("/billing/", "")
+        data = []
+        sessions = load_sessions_by_userID(user)
+        data_access = PaymentsDataAccess()
 
-#         self.send_response(200)
-#         self.send_header("Content-type", "application/json")
-#         self.end_headers()
-#         self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
-#         return
+        for sess in sessions:
+            parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
+            if not parkinglot_model:
+                continue
+
+            parkinglot = {
+                "tariff": float(parkinglot_model.tariff) if parkinglot_model.tariff else 0,
+                "daytariff": float(parkinglot_model.daytariff) if parkinglot_model.daytariff else 0,
+                "name": parkinglot_model.name,
+                "location": parkinglot_model.location,
+            }
+
+            started = sess.started.strftime("%d-%m-%Y %H:%M:%S") if sess.started else None
+            stopped = sess.stopped.strftime("%d-%m-%Y %H:%M:%S") if sess.stopped else None
+            session_dict = {
+                "licenseplate": sess.licenseplate,
+                "started": started,
+                "stopped": stopped,
+                "user": sess.user_id
+            }
+
+            amount, hours, days = sc.calculate_price(parkinglot, str(sess.session), session_dict)
+
+            transaction = sc.generate_transaction_validation_hash(sess.session, session_dict["licenseplate"])
+            payed = sc.check_payment_amount(transaction)
+
+
+            data.append({
+                "session": {"licenseplate": session_dict["licenseplate"], "started": session_dict["started"], "stopped": session_dict["stopped"]} | {"hours": hours, "days": days},
+                "parking": {"name": parkinglot["name"], "location": parkinglot["location"], "tariff": parkinglot["tariff"], "daytariff": parkinglot["daytariff"]},
+                "amount": amount,
+                "thash": transaction,
+                "payed": payed,
+                "balance": amount - payed
+            })
+
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
+        return
