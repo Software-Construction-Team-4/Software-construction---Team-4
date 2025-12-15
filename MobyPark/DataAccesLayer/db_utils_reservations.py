@@ -121,3 +121,13 @@ def get_today_reservations_count_by_lot():
     conn.close()
 
     return {str(row["parking_lot_id"]): row["count"] for row in rows}
+
+def get_reservation_by_id(reservation_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM reservations WHERE id = %s", (reservation_id,))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()

@@ -58,7 +58,7 @@
 #     response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers1)
 #     assert response.status_code == 404
 #     data = response.json()
-#     assert data["error"] == "User is not registerd to any vehicle"
+#     assert data["error"] == "User is not registered to any vehicle"
 
 #     vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers1)
 #     vehicle_data = vehicle_result.json()
