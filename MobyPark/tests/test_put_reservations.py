@@ -1,129 +1,170 @@
-# import requests
-# import pytest
-# from DataAccesLayer.vehicle_access import VehicleAccess
-# from DataModels.vehicle_model import VehicleModel
+import pytest
+import requests
+import random
 
-# from DataAccesLayer.db_utils_users import delete
+from DataAccesLayer.vehicle_access import VehicleAccess
+from DataAccesLayer.db_utils_users import delete as delete_user
+from DataModels.vehicle_model import VehicleModel
 
-# BASE_URL = "http://localhost:8000"
-
-# def get_session_token(user_data):
-#     response = requests.post(f"{BASE_URL}/login", json=user_data)
-#     return response.json()
-
-# def test_put_reservations_endpoint():
-#     DummyUserOne = {
-#         "username": "sezeven",
-#         "password": "321",
-#         "name": "sezeven Hashemy",
-#         "email": "sezeven@gmail.com",
-#         "phone": "+31022293944",
-#         "birth_year": 2000
-#     }
-
-#     DummyVehicleOne = {
-#         "license_plate": "34-OOO-3", 
-#         "make": "Ford", 
-#         "model": "Sport", 
-#         "color": "Red", 
-#         "year": "2020"
-#     }
-
-#     DummyReservationOne = {
-#         "parking_lot_id": "1", 
-#         "start_time": "2025-12-22 18:00:00",
-#         "end_time": "2025-12-22 19:00:00",
-#         "status": "confirmed",
-#         "created_at": "2025-12-22 18:00:00",
-#         "cost": 14,
-#     }
-
-#     UpdatedDummyReservationOne = {
-#         "parking_lot_id": "2", 
-#         "start_time": "2025-12-22 18:00:00",
-#         "end_time": "2025-12-22 18:30:00",
-#         "status": "confirmed",
-#         "created_at": "2025-12-22 18:00:00",
-#         "cost": 8,
-#         "updated_at": "none"
-#     }
+BASE_URL = "http://localhost:8000"
 
 
-#     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
-
-#     user_data = get_session_token(DummyUserOne)
-#     user_id = user_data.get("user_id")
-#     token1 = user_data.get("session_token")
-#     headers1 = {"Authorization": token1}
-
-#     vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers1)
-#     vehicle_data = vehicle_result.json()
-#     vehicle_model = vehicle_data["vehicle"]
-#     vehicle_obj = VehicleModel(**vehicle_model)
-
-#     create_response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers1)
-#     reservation_data_one = create_response.json()
-#     reservation_id_one = reservation_data_one["reservation"]["id"]
-
-#     response = requests.put(f"{BASE_URL}/reservations/{reservation_id_one}", json=UpdatedDummyReservationOne, headers=headers1)
-#     assert response.status_code == 200
-
-#     reservation_data_two = response.json()
-#     reservation_id_two = reservation_data_two["reservation"]["id"]
+def build_random_user():
+    return {
+        "username": f"sezeven_{random.randint(1000,9999)}",
+        "password": "321",
+        "name": "sezeven Hashemy",
+        "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
+        "phone": f"+99{random.randint(10000000, 99999999)}",
+        "birth_year": 2000
+    }
 
 
-#     requests.delete(f"{BASE_URL}/reservations/{reservation_id_two}",headers=headers1)
-#     VehicleAccess.delete(vehicle_obj)
-#     delete(user_id)
+def get_session_token(user_data):
+    response = requests.post(f"{BASE_URL}/login", json=user_data)
+    if response.status_code != 200:
+        print("LOGIN FAILED", response.text)
+        pytest.fail("Login failed")
+    return response.json()
 
 
-#     #reservation not found test below
+def register_and_login(user):
+    register_response = requests.post(f"{BASE_URL}/register", json=user)
+    if register_response.status_code != 201:
+        pytest.fail(f"User registration failed: {register_response.status_code} {register_response.text}")
 
-#     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
-
-#     user_data = get_session_token(DummyUserOne)
-#     user_id = user_data.get("user_id")
-#     token2 = user_data.get("session_token")
-#     headers2 = {"Authorization": token2}
-
-#     vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers2)
-#     vehicle_data = vehicle_result.json()
-#     vehicle_model = vehicle_data["vehicle"]
-#     vehicle_obj = VehicleModel(**vehicle_model)
-
-#     response = requests.put(f"{BASE_URL}/reservations/{9999999999999999}", json=UpdatedDummyReservationOne, headers=headers2)
-#     assert response.status_code == 404
-#     assert response.text == "Reservation not found"
+    user_data = get_session_token(user)
+    token = user_data.get("session_token")
+    user_id = user_data.get("user_id")
+    headers = {"Authorization": token}
+    return user_id, headers
 
 
-#     VehicleAccess.delete(vehicle_obj)
-#     delete(user_id)
+@pytest.fixture
+def user_with_cleanup():
+    user = build_random_user()
+    user_id, headers = register_and_login(user)
+
+    yield {"user": user, "headers": headers, "user_id": user_id}
+
+    try:
+        vehicles = VehicleAccess.get_all_user_vehicles(user_id)
+        for v in vehicles:
+            VehicleAccess.delete(v)
+        delete_user(user_id)
+    except Exception as e:
+        print(f"[TEST CLEANUP ERROR] {e}")
 
 
-#     # Access denied test below
+def create_vehicle(headers):
+    dummy_vehicle = {
+        "license_plate": f"34-OOO-{random.randint(1,9)}",
+        "make": "Ford",
+        "model": "Sport",
+        "color": "Red",
+        "year": "2020"
+    }
 
-#     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=dummy_vehicle, headers=headers)
+    assert vehicle_result.status_code == 201, vehicle_result.text
 
-#     user_data = get_session_token(DummyUserOne)
-#     user_id = user_data.get("user_id")
-#     token3 = user_data.get("session_token")
-#     headers3 = {"Authorization": token3}
-
-#     vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers3)
-#     vehicle_data = vehicle_result.json()
-#     vehicle_model = vehicle_data["vehicle"]
-#     vehicle_obj = VehicleModel(**vehicle_model)
-
-#     create_response = requests.post(f"{BASE_URL}/reservations", json=DummyReservationOne, headers=headers3)
-#     reservation_data_three = create_response.json()
-#     reservation_id_three = reservation_data_three["reservation"]["id"]
-
-#     response = requests.put(f"{BASE_URL}/reservations/{2000}", json=UpdatedDummyReservationOne, headers=headers3)
-#     data = response.json()
-#     assert response.status_code == 403
-#     assert data["error"] == "Access denied"
+    vehicle_model = vehicle_result.json()["vehicle"]
+    return VehicleModel(**vehicle_model)
 
 
-#     requests.delete(f"{BASE_URL}/reservations/{reservation_id_three}",headers=headers3)
-#     VehicleAccess.delete(vehicle_obj)
-#     delete(user_id)
+def create_reservation(headers, parking_lot_id="1"):
+    dummy_reservation = {
+        "parking_lot_id": str(parking_lot_id),
+        "start_time": "2025-12-22 18:00:00",
+        "end_time": "2025-12-22 19:00:00",
+        "status": "confirmed",
+        "created_at": "2025-12-22 18:00:00",
+        "cost": 14,
+    }
+
+    r = requests.post(f"{BASE_URL}/reservations", json=dummy_reservation, headers=headers)
+    assert r.status_code in (200, 201), r.text
+    return r.json()["reservation"]["id"]
+
+
+def test_put_reservations_endpoint(user_with_cleanup):
+    headers = user_with_cleanup["headers"]
+
+    updated_reservation = {
+        "parking_lot_id": "2",
+        "start_time": "2025-12-22 18:00:00",
+        "end_time": "2025-12-22 18:30:00",
+        "status": "confirmed",
+        "created_at": "2025-12-22 18:00:00",
+        "cost": 8,
+        "updated_at": "none"
+    }
+
+    vehicle_obj = create_vehicle(headers)
+
+    reservation_id_updated = None
+    reservation_id_a = None
+    user_b_id = None
+
+    try:
+        reservation_id = create_reservation(headers)
+
+        response = requests.put(
+            f"{BASE_URL}/reservations/{reservation_id}",
+            json=updated_reservation,
+            headers=headers
+        )
+        assert response.status_code == 200, response.text
+
+        reservation_id_updated = response.json()["reservation"]["id"]
+
+        del_resp = requests.delete(f"{BASE_URL}/reservations/{reservation_id_updated}", headers=headers)
+        assert del_resp.status_code in (200, 204), del_resp.text
+
+        response_nf = requests.put(
+            f"{BASE_URL}/reservations/{9999999999999999}",
+            json=updated_reservation,
+            headers=headers
+        )
+        assert response_nf.status_code == 404
+        assert response_nf.text == "Reservation not found"
+
+        reservation_id_a = create_reservation(headers)
+
+        user_b = build_random_user()
+        user_b_id, headers_b = register_and_login(user_b)
+
+        denied = requests.put(
+            f"{BASE_URL}/reservations/{reservation_id_a}",
+            json=updated_reservation,
+            headers=headers_b
+        )
+
+        assert denied.status_code in (403, 404), denied.text
+
+        if denied.status_code == 403:
+            data = denied.json()
+            assert data["error"] == "Access denied"
+        else:
+            assert denied.text == "Reservation not found"
+
+    finally:
+        if reservation_id_a is not None:
+            try:
+                requests.delete(f"{BASE_URL}/reservations/{reservation_id_a}", headers=headers)
+            except Exception as e:
+                print(f"[TEST CLEANUP ERROR - RES A] {e}")
+
+        if user_b_id is not None:
+            try:
+                vehicles_b = VehicleAccess.get_all_user_vehicles(user_b_id)
+                for v in vehicles_b:
+                    VehicleAccess.delete(v)
+                delete_user(user_b_id)
+            except Exception as e:
+                print(f"[TEST CLEANUP ERROR - USER B] {e}")
+
+        try:
+            VehicleAccess.delete(vehicle_obj)
+        except Exception as e:
+            print(f"[TEST CLEANUP ERROR - VEHICLE A] {e}")
