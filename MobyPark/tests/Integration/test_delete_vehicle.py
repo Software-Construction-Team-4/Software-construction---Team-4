@@ -22,10 +22,10 @@
 #     suffix = uuid.uuid4().hex[:8]
 #     return {
 #         "username": f"{prefix}_{suffix}",
-#         "password": "321",
-#         "name": f"{prefix} Name",
+#         "password": "Password321!",
+#         "name": f"Test Name",
 #         "email": f"{prefix}_{suffix}@gmail.com",
-#         "phone": f"+99{random.randint(10_000_000, 99_999_999)}",
+#         "phone": f"+310{random.randint(100000000, 999999999)}",
 #         "birth_year": 2000,
 #     }
 

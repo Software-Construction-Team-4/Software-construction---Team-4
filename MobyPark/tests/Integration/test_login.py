@@ -7,28 +7,28 @@
 # def test_login_endpoint():
 #     DummyUserOne ={
 #         "username": "sina",
-#         "password": "321",
+#         "password": "Sina321!!",
 #         "name": "Sina Hashemy",
 #         "email": "sina@gmail.com",
-#         "phone": "+31022293944",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 
 #     DummyUserTwo ={
 #         "username": "sina",
-#         "password": "3211",
+#         "password": "Sina3211!!",
 #         "name": "Sina Hashemy",
 #         "email": "sina@gmail.com",
-#         "phone": "+31022293944",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 
 #     DummyUserThree ={
 #         "username": "NietBestaand",
-#         "password": "321",
+#         "password": "Sina3211!!",
 #         "name": "Sina Hashemy",
 #         "email": "sina@gmail.com",
-#         "phone": "+31022293944",
+#         "phone": "+310222939422",
 #         "birth_year": 2000
 #     }
 
