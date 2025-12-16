@@ -20,7 +20,7 @@
 #     DummyUser = {
 #         "username": f"user_test_user_get_history_self_{uuid.uuid4()}",
 #         "password": "Password123!",
-#         "name": "Test D. Ummy",
+#         "name": "Test D Ummy",
 #         "email": "test_user_get_history_self@test.com",
 #         "phone": "+310222939422",
 #         "birth_year": 1969
@@ -46,7 +46,7 @@
 #     DummyUserOne = {
 #         "username": "userone_test_user_get_history_other_user",
 #         "password": "Password123!!",
-#         "name": "Test D. Ummy",
+#         "name": "Test D Ummy",
 #         "email": "test_user_get_history_other_user@test-one.com",
 #         "phone": "+310222939422",
 #         "birth_year": 1969
@@ -55,7 +55,7 @@
 #     DummyUserTwo = {
 #         "username": "usertwo_test_user_get_history_other_user",
 #         "password": "Password123!!",
-#         "name": "Test D. Ummy",
+#         "name": "Test D Ummy",
 #         "email": "test_user_get_history_other_user@test-two.com",
 #         "phone": "+310222939421",
 #         "birth_year": 1969
@@ -77,7 +77,7 @@
 #     DummyAdmin = {
 #         "username": "admin_test_admin_get_history_other_user",
 #         "password": "Password123!!",
-#         "name": "Test D. Ummy",
+#         "name": "Test D Ummy",
 #         "email": "test_admin_get_history_other_user@test-admin.com",
 #         "phone": "+310222939422",
 #         "birth_year": 1969
@@ -86,7 +86,7 @@
 #     DummyUser = {
 #         "username": "user_test_admin_get_history_other_user",
 #         "password": "Password123!!",
-#         "name": "Test D. Ummy",
+#         "name": "Test D Ummy",
 #         "email": "test_admin_get_history_other_user@test.com",
 #         "phone": "+310222939421",
 #         "birth_year": 1969
