@@ -1,5 +1,5 @@
 import json
-from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, load_sessions
+from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, load_sessions, load_sessions_by_userID
 from session_manager import get_session
 
 
@@ -10,44 +10,23 @@ def send_json(self, status_code, data):
     self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
 
-def _unauthorized(self):
-    send_json(self, 401, {"error": "Unauthorized"})
-
-
-def _bad_request(self, message="Missing data"):
-    send_json(self, 400, {"error": message})
-
-
-def _get_authenticated_user(self):
-    token = self.headers.get("Authorization")
-    if not token:
-        return None
-    return get_session(token)
-
-
-def _is_admin(session_user: dict) -> bool:
-    return bool(session_user) and session_user.get("role") == "ADMIN"
-
-
-def _same_user_id(a, b) -> bool:
-
-    return a is not None and b is not None and str(a) == str(b)
-
-
 def do_GET(self):
     parts = self.path.strip("/").split("/")
 
     if parts[0] == "parking-lots" and len(parts) > 1 and parts[1] == "sessions":
-        lot_id = parts[2] if len(parts) == 3 else None
-        sessions = load_sessions(lot_id)
+        token = self.headers.get("Authorization")
+        session_user = get_session(token) if token else None
+        if not session_user:
+            send_json(self, 401, {"error": "Unauthorized"})
+            return
+
+        current_user_id = session_user.get("user_id")
+        
+        sessions = load_sessions_by_userID(current_user_id)
 
         sessions_serialized = {}
-        for sid, s in sessions.items():
-            # Non-admins only see their own sessions
-            if not admin and not _same_user_id(s.user_id, current_user_id):
-                continue
-
-            sessions_serialized[sid] = {
+        for s in sessions:
+            sessions_serialized[str(s.id)] = {
                 "id": s.id,
                 "parking_lot_id": s.parking_lot_id,
                 "user_id": s.user_id,
@@ -63,6 +42,8 @@ def do_GET(self):
         return
 
     send_json(self, 404, {"error": "Invalid route"})
+
+
 
 
 def do_POST(self):
