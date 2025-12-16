@@ -155,3 +155,13 @@ def increment_active_sessions(lot_id, delta=1):
     finally:
         cursor.close()
         conn.close()
+
+def parking_lot_exists(lot_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT 1 FROM parking_lots WHERE id = %s LIMIT 1", (lot_id,))
+        return cursor.fetchone() is not None
+    finally:
+        cursor.close()
+        conn.close()
