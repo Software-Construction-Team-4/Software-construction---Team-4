@@ -117,6 +117,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             return
 
 
-server = HTTPServer(("localhost", 8000), RequestHandler)
-print("Server running on http://localhost:8000")
+server = HTTPServer(("0.0.0.0", 8000), RequestHandler)
+print("Server running on http://0.0.0.0:8000")
 server.serve_forever()
