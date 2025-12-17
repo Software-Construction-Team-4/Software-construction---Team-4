@@ -15,10 +15,10 @@
 #     suffix = random.randint(1000, 9999)
 #     return {
 #         "username": f"{prefix}{suffix}",
-#         "password": "321",
-#         "name": f"{prefix} User",
+#         "password": "Password321!",
+#         "name": f"Test User",
 #         "email": f"{prefix}{suffix}@gmail.com",
-#         "phone": f"+99{random.randint(10_000_000, 99_999_999)}",
+#         "phone": f"+310{random.randint(100000000, 999999999)}",
 #         "birth_year": 2000,
 #     }
 

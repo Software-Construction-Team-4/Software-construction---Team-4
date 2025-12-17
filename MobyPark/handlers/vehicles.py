@@ -10,7 +10,6 @@ def do_POST(self):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
 
-        # 1) Auth check
         if not token or not session:
             self.send_response(401)
             self.send_header("Content-Type", "application/json")
@@ -23,7 +22,6 @@ def do_POST(self):
 
         user_id = session["user_id"]
 
-        # 2) Parse body
         content_length = int(self.headers.get("Content-Length", -1))
         raw_body = self.rfile.read(content_length)
         try:
@@ -36,8 +34,6 @@ def do_POST(self):
                 "error": "Invalid JSON body"
             }).encode("utf-8"))
             return
-
-        # 3) Validate required fields (matches test expectations)
         required_fields = ["license_plate", "make", "model", "color", "year"]
         missing_fields = [f for f in required_fields if f not in data or data[f] in ("", None)]
 
@@ -51,8 +47,6 @@ def do_POST(self):
             }).encode("utf-8"))
             return
 
-        # 4) Enforce: only one vehicle per user
-        #    This is what your test expects on the second valid POST
         if VehicleAccess.user_has_vehicle(user_id):
             self.send_response(409)
             self.send_header("Content-Type", "application/json")
@@ -62,7 +56,6 @@ def do_POST(self):
             }).encode("utf-8"))
             return
 
-        # 5) Create vehicle
         vehicle = VehicleModel(
             -1,
             user_id,
@@ -75,7 +68,6 @@ def do_POST(self):
 
         created_vehicle = VehicleAccess.create(vehicle)
 
-        # 6) Success response (matches what your test asserts)
         self.send_response(201)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
@@ -86,11 +78,7 @@ def do_POST(self):
 
 
 def do_PUT(self):
-    """
-    Update a vehicle.
-    - User can update their *own* vehicle.
-    - Admin can update *any* vehicle.
-    """
+
     if self.path.startswith("/vehicles/"):
         token = self.headers.get("Authorization")
         session = get_session(token) if token else None
@@ -124,7 +112,6 @@ def do_PUT(self):
             self.wfile.write(b"Vehicle not found")
             return
 
-        # ⬇️ Permission check: user can update own, admin can update any
         if vehicle.user_id != session["user_id"] and session["role"] != "ADMIN":
             self.send_response(403)
             self.send_header("Content-Type", "application/json")
@@ -132,7 +119,6 @@ def do_PUT(self):
             self.wfile.write(b"Forbidden: cannot update this vehicle")
             return
 
-        # Validate required fields
         required_fields = ["license_plate", "make", "model", "color", "year"]
         for field in required_fields:
             if field not in data:
@@ -145,7 +131,6 @@ def do_PUT(self):
                 }).encode("utf-8"))
                 return
 
-        # Apply update
         vehicle.license_plate = data["license_plate"]
         vehicle.make = data["make"]
         vehicle.model = data["model"]
@@ -178,7 +163,6 @@ def do_GET(self):
         user_id = session["user_id"]
         role = session["role"]
 
-        # /vehicles
         if self.path == "/vehicles":
             if role == "ADMIN":
                 vehicles = VehicleAccess.get_all_vehicles()
@@ -194,10 +178,8 @@ def do_GET(self):
             ).encode("utf-8"))
             return
 
-        # /vehicles/<id>/reservations
         if self.path.endswith("/reservations"):
             parts = self.path.split("/")
-            # expected: ['', 'vehicles', '<id>', 'reservations']
             try:
                 vid = int(parts[2])
             except (IndexError, ValueError):
@@ -229,7 +211,6 @@ def do_GET(self):
             self.wfile.write(json.dumps(vehicle.to_json(), default=str).encode("utf-8"))
             return
 
-        # /vehicles/<id>
         if self.path.startswith("/vehicles/"):
             vid_str = self.path.replace("/vehicles/", "")
             try:
@@ -277,7 +258,6 @@ def do_DELETE(self):
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
 
-        # Only admins may delete vehicles
         if session["role"] != "ADMIN":
             self.send_response(403)
             self.send_header("Content-Type", "application/json")

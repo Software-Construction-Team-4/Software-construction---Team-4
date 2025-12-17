@@ -17,14 +17,14 @@
 
 # def test_get_reservations_endpoint():
 #     username = uuid.uuid4().hex[:8]
-#     random_phonenumber = random.randint(10000000, 99999999)
+#     random_phonenumber = random.randint(100000000, 999999999)
 #     random_number_one = random.randint(10, 99)
 #     random_number_two = random.randint(1, 9)
 #     random_letters = ''.join(random.choices(string.ascii_uppercase, k=3))
 
 #     DummyUserOne = {
 #         "username": f"{username}",
-#         "password": "321",
+#         "password": "Password321!",
 #         "name": "sezeven Hashemy",
 #         "email": f"sezeven{username}@gmail.com",
 #         "phone": f"+310{random_phonenumber}",
@@ -43,8 +43,6 @@
 #         "parking_lot_id": "1", 
 #         "start_time": "2025-12-22 18:00:00",
 #         "end_time": "2025-12-22 19:00:00",
-#         "status": "confirmed",
-#         "created_at": "2025-12-22 18:00:00",
 #         "cost": 14,
 #     }
 

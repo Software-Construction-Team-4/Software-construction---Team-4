@@ -17,14 +17,14 @@
 
 # def create_dummy_user_and_vehicle():
 #     username = uuid.uuid4().hex[:8]
-#     random_phonenumber = random.randint(10000000, 99999999)
+#     random_phonenumber = random.randint(100000000, 999999999)
 #     random_number_one = random.randint(10, 99)
 #     random_number_two = random.randint(1, 9)
 #     random_letters = ''.join(random.choices(string.ascii_uppercase, k=3))
 
 #     dummy_user = {
 #         "username": username,
-#         "password": "321",
+#         "password": "Password321!",
 #         "name": "Test User",
 #         "email": f"{username}@test.com",
 #         "phone": f"+310{random_phonenumber}",

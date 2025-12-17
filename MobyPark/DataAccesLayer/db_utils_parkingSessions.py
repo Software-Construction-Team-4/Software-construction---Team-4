@@ -11,7 +11,6 @@ def get_db_connection():
         database="mobypark"
     )
 
-
 def _row_to_parking_session(row):
     return ParkingSession(
         id=row["id"],
@@ -26,16 +25,7 @@ def _row_to_parking_session(row):
         payment_status=row["payment_status"]
     )
 
-
 def start_session(parking_lot_id, licenseplate, user_id):
-    """
-    NEW behavior:
-    - A license plate may have only 1 active (stopped IS NULL) session total,
-      across ALL parking lots.
-    Returns:
-      {"ok": True, "session_id": <id>}
-      {"ok": False, "error": "...", "active_session": {...}}
-    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
@@ -148,11 +138,11 @@ def load_sessions(parking_lot_id=None):
         conn.close()
 
 
-def load_sessions_by_userID(user):
+def load_sessions_by_userID(id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
-        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (user,))
+        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (id,))
         rows = cursor.fetchall()
         return [_row_to_parking_session(row) for row in rows]
     finally:

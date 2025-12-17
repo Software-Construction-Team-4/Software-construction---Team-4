@@ -11,6 +11,15 @@ def get_db_connection():
         database="mobypark"
     )
 
+# def get_db_connection():
+#     return mysql.connector.connect(
+#         host="localhost",
+#         port=3306,
+#         user="root",
+#         password="Kikkervis66!",
+#         database="mobypark"
+#     )
+
 def load_reservation_data():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
