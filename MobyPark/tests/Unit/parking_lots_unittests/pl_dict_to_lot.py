@@ -3,8 +3,8 @@ from DataModels.parkingLotsModel import ParkingLot
 from DataAccesLayer import db_utils_parkingLots as parkingLot_utils
 from decimal import Decimal
 
-class UnitTestParkingLots(unittest.TestCase):
-    def test_row_to_parking_lot(self):
+class ParkingLotsDictToLot(unittest.TestCase):
+    def test_row_to_lot(self):
         row = {
             "id": 676767,
             "name": "67",
@@ -31,7 +31,7 @@ class UnitTestParkingLots(unittest.TestCase):
         self.assertEqual(lot.capacity, 67)
         self.assertEqual(lot.tariff, Decimal("6.7"))
     
-    def test_row_to_parking_lot_missingid(self):
+    def test_row_to_lot_missingid(self):
         row = {
             "name": "67"
         }
@@ -39,7 +39,7 @@ class UnitTestParkingLots(unittest.TestCase):
         with self.assertRaises(KeyError):
             parkingLot_utils._row_to_parking_lot(row)
 
-    def test_row_to_parking_lot_capacity(self):
+    def test_row_to_lot_capacity(self):
         row = {
             "id": 676767,
             "name": "67",
