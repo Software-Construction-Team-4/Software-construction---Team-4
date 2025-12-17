@@ -91,13 +91,8 @@
 #     headers = user_with_cleanup["headers"]
 
 #     updated_reservation = {
-#         "parking_lot_id": "2",
 #         "start_time": "2025-12-22 18:00:00",
-#         "end_time": "2025-12-22 18:30:00",
-#         "status": "confirmed",
-#         "created_at": "2025-12-22 18:00:00",
-#         "cost": 8,
-#         "updated_at": "none"
+#         "end_time": "2025-12-22 18:30:00"
 #     }
 
 #     vehicle_obj = create_vehicle(headers)
