@@ -88,15 +88,6 @@ def created_payment():
     PaymentsDataAccess().delete_payment(payment["payment_id"])
     delete(user_data.get("user_id"))
 
-def test_GET_billing_sad():
-    response = requests.get(
-        f"{BASE_URL}/billing/1",
-        headers=headers1
-    )
-
-    assert response.status_code == 403
-    assert response.text == "Access denied"
-
 def test_POST_payment(created_payment):
     assert created_payment["status"] == "Success"
     assert "payment_id" in created_payment

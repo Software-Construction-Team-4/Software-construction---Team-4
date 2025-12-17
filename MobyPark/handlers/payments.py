@@ -268,14 +268,14 @@ def do_GET(self):
 
     elif self.path.startswith("/billing/"):
         token = self.headers.get('Authorization')
-        # if not token or not get_session(token):
-        #     self.send_response(401)
-        #     self.send_header("Content-type", "application/json")
-        #     self.end_headers()
-        #     self.wfile.write(b"Unauthorized: Invalid or missing session token")
-        #     return
-
         session_user = get_session(token)
+        if not session_user:
+            self.send_response(401)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Unauthorized: Invalid or missing session token")
+            return
+        
         if session_user.get('role') != "ADMIN":
             self.send_response(403)
             self.send_header("Content-type", "application/json")
