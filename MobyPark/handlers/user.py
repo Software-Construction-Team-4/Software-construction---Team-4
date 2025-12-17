@@ -97,7 +97,9 @@ def do_POST(self):
                 self.wfile.write(b"Phone number is already in use")
                 return
 
-
+        if len(phone) == 9:
+            phone = "+310" + phone
+            
         new_user = userModel(
             id=None,
             username=username,
