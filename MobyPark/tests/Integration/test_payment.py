@@ -12,10 +12,10 @@ BASE_URL = "http://localhost:8000"
 
 random_user = {
     "username": f"sezeven_{random.randint(1000,9999)}",
-    "password": "321",
+    "password": "Password321!",
     "name": "sezeven Hashemy",
     "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
-    "phone": f"+99{random.randint(10000000, 99999999)}",
+    "phone": f"+999{random.randint(100000000, 999999999)}",
     "birth_year": 2000
 }
 
@@ -63,7 +63,7 @@ def get_session_token(user_data):
 register_response = requests.post(f"{BASE_URL}/register", json=random_user)
 
 if register_response.status_code != 201:
-    pytest.fail("User registration failed")
+    pytest.fail(f"User registration failed {register_response.status_code}: {register_response.text}")
 
 user_data = get_session_token(random_user)
 token1 = user_data.get("session_token")
