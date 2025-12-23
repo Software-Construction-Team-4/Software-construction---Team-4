@@ -77,21 +77,21 @@ def do_POST(self):
 
         for user in users:
             if username == user.username:
-                self.send_response(200)
+                self.send_response(400)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Username already taken")
                 return
             
             if email == user.email:
-                self.send_response(200)
+                self.send_response(400)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Email is already in use")
                 return
             
             if phone == user.phone:
-                self.send_response(200)
+                self.send_response(400)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(b"Phone number is already in use")

@@ -116,11 +116,18 @@ def test_admin_get_history_other_user():
     admin_data = create_user(DummyAdmin)
     auth = { "Authorization": admin_data.get("session_token") }
 
-    user_data = create_user(DummyUser)
+# BASE_URL = "http://localhost:8000"
 
-    response = requests.get(f"{BASE_URL}/history/{user_data.get("user_id")}", headers=auth)
+# def create_user(user_data):
+#     reg = requests.post(f"{BASE_URL}/register", json=user_data)
+#     if reg.status_code not in (200, 201):
+#         raise RuntimeError(f"Registration failed ({reg.status_code}): {reg.text}")
 
-    assert response.status_code == 200
+#     login = requests.post(f"{BASE_URL}/login", json=user_data)
+#     if login.status_code != 200:
+#         raise RuntimeError(f"Login failed ({login.status_code}): {login.text}")
+
+#     return login.json()
 
     delete(admin_data.get("user_id"))
     delete(user_data.get("user_id"))

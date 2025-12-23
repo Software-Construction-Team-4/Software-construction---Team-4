@@ -10,6 +10,27 @@ def get_db_connection():
         database="mobypark"
     )
 
+
+def delete_users_after_id(start_id: int = 8600) -> str:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = "DELETE FROM users WHERE id > %s"
+        cursor.execute(sql, (start_id,))
+        affected = cursor.rowcount
+        conn.commit()
+        return "succes"
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting users after id {start_id}: {e}")
+        return "error"
+
+    finally:
+        cursor.close()
+        conn.close()
+
 # def get_db_connection():
 #     return mysql.connector.connect(
 #         host="localhost",

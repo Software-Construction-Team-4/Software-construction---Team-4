@@ -8,7 +8,7 @@ BASE_URL = "http://127.0.0.1:8001"
 def test_login_success():
     response = requests.post(
         f"{BASE_URL}/login",
-        json={"username": "tt", "password": "321"},
+        json={"username": "tt", "password": "Tttf123!"},
         timeout=5
     )
 
