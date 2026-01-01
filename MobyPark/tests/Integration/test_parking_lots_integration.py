@@ -130,3 +130,5 @@ def test_delete_parking_lot_unauthorized_sad_path():
     assert response.status_code == 401
     assert "Unauthorized" in response.text
     delete_parking_lot(lot_id)
+
+    # dwd
