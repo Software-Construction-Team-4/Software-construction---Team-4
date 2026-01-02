@@ -8,8 +8,8 @@ import random
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user  # delete user by id
 
-
-BASE_URL = "http://localhost:8000"
+import os
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 random_user = {

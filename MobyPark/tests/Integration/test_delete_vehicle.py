@@ -15,7 +15,8 @@ from DataAccesLayer.db_utils_users import (
 )
 from DataModels.userModel import userModel
 
-BASE_URL = "http://localhost:8000"
+import os
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def make_unique_user(prefix: str):

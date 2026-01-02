@@ -1,4 +1,5 @@
 # test_get_vehicles.py
+import os
 
 import random
 import pytest
@@ -7,7 +8,7 @@ import requests
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def make_random_user(prefix: str):

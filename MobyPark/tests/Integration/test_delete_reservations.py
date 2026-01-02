@@ -9,7 +9,8 @@ from DataModels.vehicle_model import VehicleModel
 
 from DataAccesLayer.db_utils_users import delete
 
-BASE_URL = "http://localhost:8000"
+import os
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def get_session_token(user_data):

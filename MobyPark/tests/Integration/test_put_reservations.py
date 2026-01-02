@@ -6,7 +6,8 @@ from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user
 from DataModels.vehicle_model import VehicleModel
 
-BASE_URL = "http://localhost:8000"
+import os
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def build_random_user():
