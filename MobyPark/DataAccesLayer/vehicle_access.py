@@ -24,7 +24,6 @@ db = mysql.connector.connect(
 cursor = db.cursor()
 
 class UserAlreadyHasVehicleError(Exception):
-    """Raised when a user tries to create more than one vehicle."""
     pass
 
 
@@ -33,9 +32,6 @@ class VehicleAccess:
 
     @staticmethod
     def update(vehicle: VehicleModel) -> 'VehicleModel':
-        """
-        Update an existing vehicle in the database and return the refreshed model.
-        """
         now = datetime.datetime.now().strftime(VehicleModel.DATE_FORMAT)
 
         cursor.execute(f"""
@@ -88,9 +84,6 @@ class VehicleAccess:
 
     @staticmethod
     def user_has_vehicle(user_id: int) -> bool:
-        """
-        Check if the given user already has at least one vehicle.
-        """
         cursor.execute(
             f"SELECT id FROM {VehicleAccess.TABLE} WHERE user_id = %s LIMIT 1",
             (user_id,)
