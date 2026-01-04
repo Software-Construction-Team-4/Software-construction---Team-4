@@ -1,19 +1,38 @@
-import datetime
-from typing import Optional
 import mysql.connector
+from DataModels.userModel import userModel
 
-from DataModels.vehicle_model import VehicleModel
+def get_db_connection():
+    return mysql.connector.connect(
+        host="145.24.237.71",
+        port=8001,
+        user="vscode",
+        password="StrongPassword123!",
+        database="mobypark"
+    )
 
-# TODO place this in a gitignored .env file
-db = mysql.connector.connect(
-    host="145.24.237.71",
-    port=8001,
-    user="vscode",
-    password="StrongPassword123!",
-    database="mobypark"
-)
 
-# db = mysql.connector.connect(
+def delete_users_after_id(start_id: int = 8600) -> str:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = "DELETE FROM users WHERE id > %s"
+        cursor.execute(sql, (start_id,))
+        affected = cursor.rowcount
+        conn.commit()
+        return "succes"
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting users after id {start_id}: {e}")
+        return "error"
+
+    finally:
+        cursor.close()
+        conn.close()
+
+# def get_db_connection():
+#     return mysql.connector.connect(
 #         host="localhost",
 #         port=3306,
 #         user="root",
@@ -21,121 +40,195 @@ db = mysql.connector.connect(
 #         database="mobypark"
 #     )
 
-cursor = db.cursor()
+#  Laat alle dubbele users zien
 
-class UserAlreadyHasVehicleError(Exception):
-    pass
+# def find_duplicate_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
 
+#     try:
+#         sql = """
+#         SELECT username, COUNT(*) AS count
+#         FROM users
+#         GROUP BY username
+#         HAVING COUNT(*) > 1
+#         ORDER BY count DESC;
+#         """
 
-class VehicleAccess:
-    TABLE: str = "vehicles"
+#         cursor.execute(sql)
+#         duplicates = cursor.fetchall()
 
-    @staticmethod
-    def update(vehicle: VehicleModel) -> 'VehicleModel':
-        now = datetime.datetime.now().strftime(VehicleModel.DATE_FORMAT)
+#         if not duplicates:
+#             print("No duplicate users found.")
+#             return
 
-        cursor.execute(f"""
-            UPDATE {VehicleAccess.TABLE}
-            SET
-                user_id = %s,
-                license_plate = %s,
-                make = %s,
-                model = %s,
-                color = %s,
-                year = %s,
-                updated_at = %s
-            WHERE id = %s
-        """, (
-            vehicle.user_id,
-            vehicle.license_plate,
-            vehicle.make,
-            vehicle.model,
-            vehicle.color,
-            vehicle.year,
-            now,
-            vehicle.id
-        ))
+#         print("Duplicate usernames:")
+#         for row in duplicates:
+#             print(f"{row['username']}: {row['count']}")
 
-        db.commit()
-        return VehicleAccess.get_by_id(vehicle.id)
+#     except Exception as e:
+#         print(f"Error detecting duplicates: {e}")
 
-    @staticmethod
-    def delete(vehicle: VehicleModel) -> None:
-        cursor.execute(f"DELETE FROM {VehicleAccess.TABLE} WHERE id = %s", (vehicle.id,))
-        db.commit()
+#     finally:
+#         cursor.close()
+#         conn.close()
 
-    @staticmethod
-    def get_by_id(id: int) -> Optional['VehicleModel']:
-        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE id = %s", (id,))
-        result = cursor.fetchone()
-        return (result is not None) and VehicleModel(*result) or None
+# DUBBELE USERS WORDEN INACTIVE
 
-    @staticmethod
-    def get_all_vehicles() -> list['VehicleModel']:
-        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE}")
-        result = cursor.fetchall()
-        return [VehicleModel(*vehicle) for vehicle in result]
+# def deactivate_duplicate_users():
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
 
-    @staticmethod
-    def get_all_user_vehicles(user_id: int) -> list['VehicleModel']:
-        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE user_id = %s", (user_id,))
-        result = cursor.fetchall()
-        return [VehicleModel(*vehicle) for vehicle in result]
+#     try:
+#         sql = """
+#         UPDATE users u
+#         JOIN (
+#             SELECT username, MIN(id) AS keep_id
+#             FROM users
+#             GROUP BY username
+#         ) x ON u.username = x.username
+#         SET u.active = 0
+#         WHERE u.id <> x.keep_id;
+#         """
+#         cursor.execute(sql)
+#         conn.commit()
+#         print("Duplicate users have been set to inactive (active = 0).")
 
-    @staticmethod
-    def user_has_vehicle(user_id: int) -> bool:
-        cursor.execute(
-            f"SELECT id FROM {VehicleAccess.TABLE} WHERE user_id = %s LIMIT 1",
-            (user_id,)
-        )
-        return cursor.fetchone() is not None
+#     except Exception as e:
+#         print(f"Error deactivating duplicate users: {e}")
+#         conn.rollback()
 
-    @staticmethod
-    def create(vehicle: VehicleModel) -> Optional['VehicleModel']:
+#     finally:
+#         cursor.close()
+#         conn.close()
 
-        if VehicleAccess.user_has_vehicle(vehicle.user_id):
-            raise UserAlreadyHasVehicleError("User already has a vehicle")
+def load_users():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    users_list = []
 
-        now = datetime.datetime.now().strftime(VehicleModel.DATE_FORMAT)
+    try:
+        cursor.execute("SELECT * FROM users")
+        rows = cursor.fetchall()
 
-        cursor.execute(f"""
-            INSERT INTO {VehicleAccess.TABLE}
-                (user_id, license_plate, make, model, color, year, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            vehicle.user_id, vehicle.license_plate, vehicle.make,
-            vehicle.model, vehicle.color, vehicle.year,
-            now, None
-        ))
-
-        db.commit()
-        new_id = cursor.lastrowid
-
-        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE id = %s", (new_id,))
-        row = cursor.fetchone()
-        if row:
-            return VehicleModel(
-                id=row[0],
-                user_id=row[1],
-                license_plate=row[2],
-                make=row[3],
-                model=row[4],
-                color=row[5],
-                year=row[6],
-                created_at=row[7],
-                updated_at=row[8]
+        for row in rows:
+            user = userModel(
+                id=row["id"],
+                username=row["username"],
+                password=row["password"],
+                name=row["name"],
+                email=row["email"],
+                phone=row["phone"],
+                role=row["role"],
+                created_at=row["created_at"],
+                birth_year=row["birth_year"],
+                active=row["active"]
             )
-        return None
+            users_list.append(user)
 
-    @staticmethod
-    def delete_vehicles_after_id():
-        try:
-            cursor.execute(
-                f"DELETE FROM {VehicleAccess.TABLE} WHERE id > %s",
-                (14210,)
-            )
-            db.commit()
-            return "success"
-        except Exception:
-            db.rollback()
-            return "error"
+        return users_list
+
+    except Exception as e:
+        print(f"Error loading users: {e}")
+        return []
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def save_user(user: userModel):
+    if not isinstance(user, userModel):
+        raise TypeError("user must be a of type userModel")
+
+    data = user.to_dict()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = """
+        INSERT INTO users
+            (username, password, name, email, phone, role, created_at, birth_year, active)
+        VALUES
+            (%(username)s, %(password)s, %(name)s, %(email)s, %(phone)s,
+             %(role)s, %(created_at)s, %(birth_year)s, %(active)s)
+        """
+
+        cursor.execute(sql, data)
+        conn.commit()
+
+    except Exception as e:
+        print(f"Error saving user: {e}")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+def update_user_data(user: userModel):
+    if not isinstance(user, userModel):
+        raise TypeError("Expected userModel instance")
+    if user.id is None:
+        raise ValueError("User must have an 'id' to update")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    fields = {
+        "username": user.username,
+        "password": user.password,
+        "name": user.name,
+        "email": user.email,
+        "phone": user.phone,
+        "role": user.role,
+        "birth_year": user.birth_year,
+        "active": user.active
+    }
+
+    updates = {k: v for k, v in fields.items() if v is not None}
+
+    if not updates:
+        return
+
+    sql = f"UPDATE users SET {', '.join(f'{k}=%s' for k in updates)} WHERE id=%s"
+    values = list(updates.values()) + [user.id]
+
+    try:
+        cursor.execute(sql, values)
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def delete(user_id: int) -> None:
+    db = get_db_connection()
+    cursor = db.cursor()
+    cursor.execute(
+        "DELETE FROM users WHERE id = %s",
+        (user_id,)
+    )
+    db.commit()
+    cursor.close()
+    db.close()
+
+
+def delete_users_after_id():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = "DELETE FROM users WHERE id > %s"
+        cursor.execute(sql, (8600,))
+        conn.commit()
+        return(f"All users with id > 8600 have been deleted.")
+    except Exception:
+        conn.rollback()
+        return "error"
+    finally:
+        cursor.close()
+        conn.close()
+
+    
