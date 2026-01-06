@@ -37,7 +37,7 @@ jobs:
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
-          password: ${{ secrets.VM_SSH_KEY }}
+          key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           script: |
             cd ~/deploy
