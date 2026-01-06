@@ -5,7 +5,7 @@ from DataAccesLayer.db_utils_reservations import save_reservation_data, load_res
 from session_manager import get_session
 from DataModels.reservationsModel import Reservations
 from DataAccesLayer.vehicle_access import VehicleAccess
-from DataAccesLayer.db_utils_parkingLots import save_parking_lot, load_parking_lots, update_parking_lot, parking_lot_exists
+from DataAccesLayer.db_utils_parkingLots import save_parking_lot, update_parking_lot, parking_lot_exists
 
 def update_parking_lot_reserved(lot_id, delta=1):
     update_parking_lot(lot_id, {"reserved": delta})
