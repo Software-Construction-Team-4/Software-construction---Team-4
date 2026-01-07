@@ -1,5 +1,7 @@
+from datetime import datetime
 import mysql.connector
 from DataModels.parkingSessionModel import ParkingSession
+from session_calculator import calculate_price
 
 
 def get_db_connection():
@@ -102,19 +104,22 @@ def stop_session(parking_lot_id, licenseplate):
 
         cursor.execute("SELECT tariff FROM parking_lots WHERE id=%s", (parking_lot_id,))
         lot = cursor.fetchone()
-        tariff = lot["tariff"] if lot else 0
+
+        stopped: datetime = datetime.now()
+        cost, hours, _ = calculate_price(lot, int(session["id"]), { "started": session["started"], "stopped": stopped })
+        minutes: int = hours * 60
 
         cursor.execute(
             """
             UPDATE parking_sessions
             SET
-              stopped = NOW(),
-              duration_minutes = TIMESTAMPDIFF(MINUTE, started, NOW()),
-              cost = TIMESTAMPDIFF(MINUTE, started, NOW()) * %s / 60,
+              stopped = %s,
+              duration_minutes = %s,
+              cost = %s,
               payment_status = 'unpaid'
             WHERE id = %s
             """,
-            (tariff, session["id"])
+            (stopped, minutes, cost, session["id"])
         )
 
         cursor.execute(
