@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Union
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess
 from hashlib import md5
 import math
@@ -15,28 +16,32 @@ def load_payment_data():
         for p in payments
     ]
 
-def calculate_price(parkinglot, sid, data):
-    price = 0
-    start = datetime.strptime(data["started"], "%d-%m-%Y %H:%M:%S")
+def calculate_price(parkinglot, sid, data) -> tuple[float, float, int]:
+    start_date: Union[str, datetime] = data["started"]
+    if not isinstance(start_date, datetime):
+        start_date = datetime.strptime(data["started"], "%d-%m-%Y %H:%M:%S")
 
-    if data.get("stopped"):
-        end = datetime.strptime(data["stopped"], "%d-%m-%Y %H:%M:%S")
+    stop_date: Union[str, datetime] = data.get("stopped") or datetime.now()
+    if not isinstance(stop_date, datetime):
+        stop_date = datetime.strptime(data["stopped"], "%d-%m-%Y %H:%M:%S")
+
+    diff: timedelta = stop_date - start_date
+
+    hours: int = math.ceil(diff.total_seconds() / 3600)
+    days: int = diff.days
+
+    hour_tariff: float = float(parkinglot.get("tariff", 5.00))
+    day_tariff: float = float(parkinglot.get("daytariff", 100.00))
+
+    if diff.total_seconds() < 180: # parked for less than three minutes
+        return 0.00, hours, days
+    elif stop_date.date() > start_date.date(): # parked for over a day, with one day running from 00:00 to 23:59
+        days = min(diff.days, 1)
+        price: float = day_tariff * days
+        return price, hours, days
     else:
-        end = datetime.now()
-
-    diff = end - start
-    hours = math.ceil(diff.total_seconds() / 3600)
-
-    if diff.total_seconds() < 180:
-        price = 0
-    elif end.date() > start.date():
-        price = float(parkinglot.get("daytariff", 999)) * (diff.days + 1)
-    else:
-        price = float(parkinglot.get("tariff")) * hours
-        if price > float(parkinglot.get("daytariff", 999)):
-            price = float(parkinglot.get("daytariff", 999))
-
-    return price, hours, diff.days + 1 if end.date() > start.date() else 0
+        price: float = min(hour_tariff * hours, day_tariff) # capped at the daily tariff
+        return price, hours, days
 
 
 def generate_transaction_validation_hash(sid, licenseplate):
