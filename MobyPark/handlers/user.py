@@ -19,8 +19,6 @@ def do_POST(self):
 
         hashed_password = hashlib.md5(password.encode()).hexdigest()
 
-        users = load_users()
-
         passResult = UserLogic.CheckPassword(password)
         nameResult = UserLogic.CheckName(name)
         emailResult = UserLogic.CheckEmail(email)
