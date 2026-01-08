@@ -4,7 +4,7 @@ from datetime import datetime
 from session_manager import get_session
 import session_calculator as sc
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
-from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
+from DataAccesLayer.db_utils_parkingLots import load_parking_lot_by_id
 from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
 
 def do_POST(self):

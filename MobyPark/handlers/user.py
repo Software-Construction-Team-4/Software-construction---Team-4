@@ -2,7 +2,7 @@ import json
 import hashlib
 import uuid
 from datetime import date
-from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data
+from DataAccesLayer.db_utils_users import load_users, save_user, update_user_data, get_user_by_username, get_user_by_email, get_user_by_phone, get_user_by_id
 from session_manager import add_session, remove_session, get_session
 from DataModels.userModel import userModel
 from LogicLayer.userLogic import UserLogic
@@ -18,8 +18,6 @@ def do_POST(self):
         birth_year = data.get("birth_year")
 
         hashed_password = hashlib.md5(password.encode()).hexdigest()
-
-        users = load_users()
 
         passResult = UserLogic.CheckPassword(password)
         nameResult = UserLogic.CheckName(name)
@@ -75,27 +73,27 @@ def do_POST(self):
             self.wfile.write(b"Invalid phone number. Must contain only digits. Length must be 9 digits if '+' isn't provided, or 12 digits including '+' if country code is included.")
             return
 
-        for user in users:
-            if username == user.username:
-                self.send_response(400)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Username already taken")
-                return
-            
-            if email == user.email:
-                self.send_response(400)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Email is already in use")
-                return
-            
-            if phone == user.phone:
-                self.send_response(400)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Phone number is already in use")
-                return
+        
+        if get_user_by_username(username):
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Username already taken")
+            return
+        
+        if get_user_by_email(email):
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Email is already in use")
+            return
+        
+        if get_user_by_phone(phone):
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Phone number is already in use")
+            return
 
         if len(phone) == 9:
             phone = "+310" + phone
@@ -135,23 +133,22 @@ def do_POST(self):
                 return
             hashed_password = hashlib.md5(password.encode()).hexdigest()
 
-            users = load_users()
-            for user in users:
-                if user.username == username:
-                    if user.password == hashed_password:
-                        token = str(uuid.uuid4())
-                        add_session(token, user)
-                        self.send_response(200)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token, "user_id": user.id}).encode('utf-8'))
-                        return
-                    else:
-                        self.send_response(401)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b"Invalid credentials")
-                        return
+            user = get_user_by_username(username)
+            if user:
+                if user.password == hashed_password:
+                    token = str(uuid.uuid4())
+                    add_session(token, user)
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"message": "User logged in", "session_token": token, "user_id": user.id}).encode('utf-8'))
+                    return
+                else:
+                    self.send_response(401)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(b"Invalid credentials")
+                    return
             self.send_response(401)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -178,9 +175,8 @@ def do_PUT(self):
             return
 
         data = json.loads(self.rfile.read(content_length))
-        users = load_users()
 
-        foundUser = next((u for u in users if str(u.id) == str(data["id"])), None)
+        foundUser = get_user_by_id(data["id"])
         if foundUser is None:
             self.send_response(404)
             self.send_header("Content-type", "application/json")
