@@ -16,7 +16,7 @@ def load_payment_data():
         for p in payments
     ]
 
-def calculate_price(parkinglot, sid, data) -> tuple[float, float, int]:
+def calculate_price(parkinglot, data) -> tuple[float, float, int]:
     start_date: Union[str, datetime] = data["started"]
     if not isinstance(start_date, datetime):
         start_date = datetime.strptime(data["started"], "%d-%m-%Y %H:%M:%S")
