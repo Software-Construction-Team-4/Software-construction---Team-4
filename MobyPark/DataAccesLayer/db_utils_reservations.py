@@ -121,7 +121,7 @@ def get_today_reservations_count_by_lot():
         FROM reservations
         WHERE DATE(start_time) <= %s
           AND DATE(end_time) >= %s
-          AND status = 'confirmed'
+          AND status = 'pending'
         GROUP BY parking_lot_id
     """, (today, today))
 
