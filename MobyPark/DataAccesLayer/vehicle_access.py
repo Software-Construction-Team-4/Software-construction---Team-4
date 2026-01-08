@@ -126,6 +126,14 @@ class VehicleAccess:
                 updated_at=row[8]
             )
         return None
+    
+    @staticmethod
+    def license_plate_exists(license_plate: str) -> bool:
+        cursor.execute(
+            f"SELECT id FROM {VehicleAccess.TABLE} WHERE license_plate = %s LIMIT 1",
+            (license_plate,)
+        )
+        return cursor.fetchone() is not None
 
     @staticmethod
     def delete_vehicles_after_id():

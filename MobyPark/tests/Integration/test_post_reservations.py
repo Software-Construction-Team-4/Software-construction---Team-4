@@ -85,7 +85,7 @@ def test_post_reservations_endpoint():
     }
 
     DummyVehicleTwo = {
-        "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
+        "license_plate": f"{random_number_one - 1}-{random_letters}-{random_number_two + 1}", 
         "make": "Ford", 
         "model": "Sport", 
         "color": "Red", 
