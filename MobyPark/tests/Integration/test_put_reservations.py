@@ -73,13 +73,13 @@
 #     return VehicleModel(**vehicle_model)
 
 
-# def create_reservation(headers, parking_lot_id="1"):
+# def create_reservation(headers, vehicle_id, parking_lot_id=1):
 #     dummy_reservation = {
-#         "parking_lot_id": str(parking_lot_id),
-#         "start_time": "2025-12-22 18:00:00",
-#         "end_time": "2025-12-22 19:00:00",
+#         "parking_lot_id": parking_lot_id,
+#         "vehicle_id": vehicle_id,
+#         "start_time": "2030-12-22 18:00:00",
+#         "end_time": "2030-12-22 19:00:00",
 #         "status": "confirmed",
-#         "created_at": "2025-12-22 18:00:00",
 #         "cost": 14,
 #     }
 
@@ -92,8 +92,8 @@
 #     headers = user_with_cleanup["headers"]
 
 #     updated_reservation = {
-#         "start_time": "2025-12-22 18:00:00",
-#         "end_time": "2025-12-22 18:30:00"
+#         "start_time": "2030-12-22 18:00:00",
+#         "end_time": "2030-12-22 18:30:00"
 #     }
 
 #     vehicle_obj = create_vehicle(headers)
@@ -103,7 +103,7 @@
 #     user_b_id = None
 
 #     try:
-#         reservation_id = create_reservation(headers)
+#         reservation_id = create_reservation(headers, vehicle_obj.id)  # CHANGED: pass vehicle_id
 
 #         response = requests.put(
 #             f"{BASE_URL}/reservations/{reservation_id}",
@@ -114,7 +114,10 @@
 
 #         reservation_id_updated = response.json()["reservation"]["id"]
 
-#         del_resp = requests.delete(f"{BASE_URL}/reservations/{reservation_id_updated}", headers=headers)
+#         del_resp = requests.delete(
+#             f"{BASE_URL}/reservations/{reservation_id_updated}",
+#             headers=headers
+#         )
 #         assert del_resp.status_code in (200, 204), del_resp.text
 
 #         response_nf = requests.put(
@@ -125,7 +128,7 @@
 #         assert response_nf.status_code == 404
 #         assert response_nf.text == "Reservation not found"
 
-#         reservation_id_a = create_reservation(headers)
+#         reservation_id_a = create_reservation(headers, vehicle_obj.id)  # CHANGED: pass vehicle_id
 
 #         user_b = build_random_user()
 #         user_b_id, headers_b = register_and_login(user_b)
@@ -148,8 +151,8 @@
 #         if reservation_id_a is not None:
 #             try:
 #                 requests.delete(f"{BASE_URL}/reservations/{reservation_id_a}", headers=headers)
-#             except Exception as e:
-#                 print(f"[TEST CLEANUP ERROR - RES A] {e}")
+#             except Exception:
+#                 pass
 
 #         if user_b_id is not None:
 #             try:
@@ -157,10 +160,10 @@
 #                 for v in vehicles_b:
 #                     VehicleAccess.delete(v)
 #                 delete_user(user_b_id)
-#             except Exception as e:
-#                 print(f"[TEST CLEANUP ERROR - USER B] {e}")
+#             except Exception:
+#                 pass
 
 #         try:
 #             VehicleAccess.delete(vehicle_obj)
-#         except Exception as e:
-#             print(f"[TEST CLEANUP ERROR - VEHICLE A] {e}")
+#         except Exception:
+#             pass
