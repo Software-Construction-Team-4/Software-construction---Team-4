@@ -1,6 +1,6 @@
 import mysql.connector
 from DataModels.parkingLotsModel import ParkingLot
-from DataAccesLayer.db_utils_reservations import get_today_reservations_count_by_lot
+from datetime import date
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -31,21 +31,20 @@ def _row_to_parking_lot(row):
     )
 
 def load_parking_lots():
+    from DataAccesLayer.db_utils_reservations import create_missed_parking_sessions, get_today_reservations_count_by_lot
+    create_missed_parking_sessions()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM parking_lots")
         rows = cursor.fetchall()
         today_reserved = get_today_reservations_count_by_lot()
-
-
         lots = {}
         for row in rows:
             lot_id = str(row["id"])
             reserved_count = today_reserved.get(lot_id, 0)
             row["reserved"] = reserved_count
             update_parking_lot(lot_id, {"reserved": reserved_count})
-
             cursor.execute(
                 "SELECT COUNT(*) as active_count FROM parking_sessions WHERE parking_lot_id=%s AND stopped IS NULL",
                 (lot_id,)
@@ -53,15 +52,15 @@ def load_parking_lots():
             active_count = cursor.fetchone()["active_count"]
             row["active_sessions"] = active_count
             update_parking_lot(lot_id, {"active_sessions": active_count})
-
             lots[lot_id] = _row_to_parking_lot(row)
-
         return lots
     finally:
         cursor.close()
         conn.close()
 
 def load_parking_lot_by_id(lot_id):
+    from DataAccesLayer.db_utils_reservations import create_missed_parking_sessions, get_today_reservations_count_by_lot
+    create_missed_parking_sessions()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -69,12 +68,9 @@ def load_parking_lot_by_id(lot_id):
         row = cursor.fetchone()
         if not row:
             return None
-
         today_reserved = get_today_reservations_count_by_lot()
         reserved_count = today_reserved.get(str(lot_id), 0)
         row["reserved"] = reserved_count
-        update_parking_lot(lot_id, {"reserved": reserved_count})
-
         cursor.execute(
             "SELECT COUNT(*) as active_count FROM parking_sessions WHERE parking_lot_id=%s AND stopped IS NULL",
             (lot_id,)
@@ -82,7 +78,6 @@ def load_parking_lot_by_id(lot_id):
         active_count = cursor.fetchone()["active_count"]
         row["active_sessions"] = active_count
         update_parking_lot(lot_id, {"active_sessions": active_count})
-
         return _row_to_parking_lot(row)
     finally:
         cursor.close()
@@ -162,6 +157,19 @@ def parking_lot_exists(lot_id):
     try:
         cursor.execute("SELECT 1 FROM parking_lots WHERE id = %s LIMIT 1", (lot_id,))
         return cursor.fetchone() is not None
+    finally:
+        cursor.close()
+        conn.close()
+
+def increment_reserved(lot_id, delta):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE parking_lots SET reserved = GREATEST(COALESCE(reserved, 0) + %s, 0) WHERE id = %s",
+            (delta, lot_id)
+        )
+        conn.commit()
     finally:
         cursor.close()
         conn.close()

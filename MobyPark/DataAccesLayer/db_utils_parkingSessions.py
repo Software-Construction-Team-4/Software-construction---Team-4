@@ -27,7 +27,7 @@ def _row_to_parking_session(row):
         payment_status=row["payment_status"]
     )
 
-def start_session(parking_lot_id, licenseplate, user_id):
+def start_session(parking_lot_id, licenseplate, user_id, start_time=None, end_time=None, cost=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
@@ -58,14 +58,26 @@ def start_session(parking_lot_id, licenseplate, user_id):
         )
         next_session_number = cursor.fetchone()["next_num"]
 
+        started_value = start_time if start_time else datetime.now()
+        stopped_value = end_time
+
         cursor.execute(
             """
             INSERT INTO parking_sessions
-              (parking_lot_id, licenseplate, started, user, duration_minutes, cost, payment_status, session)
+              (parking_lot_id, licenseplate, started, stopped, user,
+               duration_minutes, cost, payment_status, session)
             VALUES
-              (%s, %s, NOW(), %s, 0, 0, 'pending', %s)
+              (%s, %s, %s, %s, %s, 0, %s, 'pending', %s)
             """,
-            (parking_lot_id, licenseplate, user_id, next_session_number)
+            (
+                parking_lot_id,
+                licenseplate,
+                started_value,
+                stopped_value,
+                user_id,
+                cost if cost is not None else 0,
+                next_session_number
+            )
         )
 
         cursor.execute(
@@ -75,6 +87,7 @@ def start_session(parking_lot_id, licenseplate, user_id):
 
         conn.commit()
         return {"ok": True, "session_id": cursor.lastrowid}
+
     finally:
         cursor.close()
         conn.close()
