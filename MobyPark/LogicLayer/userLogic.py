@@ -1,4 +1,10 @@
+import hashlib
+
+
 class UserLogic:
+    HASH_FORMAT = "{method}${iterations}${hash}"
+    HASH_ITERATIONS = 100
+
     def CheckPassword(password):
         if len(password) < 8:
             return 0
@@ -28,7 +34,7 @@ class UserLogic:
             return 4
         else:
             return 5
-        
+
     def CheckName(name):
         listName = name.strip().split()
         if len(listName) < 2:
@@ -42,7 +48,7 @@ class UserLogic:
 
     def CheckEmail(email):
         email = email.strip()
-        
+
         if " " in email:
             return 0
 
@@ -58,7 +64,7 @@ class UserLogic:
             return 3
 
         return 5
-    
+
     def CheckPhone(phone):
         phone = phone.strip()
 
@@ -76,3 +82,31 @@ class UserLogic:
 
         else:
             return 0
+
+    @staticmethod
+    def hash_password(password: str, method: str = "sha256", iterations: int = HASH_ITERATIONS) -> str:
+        hash = None
+        if method == "sha256":
+            hash = hashlib.sha256()
+        else:
+            hash = hashlib.md5()
+
+        hash.update(password.encode())
+        for _ in range(max(iterations - 1, 0)): # technically already does one iteration when creating hash
+            hash.update(hash.digest())
+
+        return UserLogic.HASH_FORMAT.format(method = method, iterations = iterations, hash = hash.hexdigest())
+
+    @staticmethod
+    def compare_password(input: str, saved: str) -> bool:
+        metadata: list[str] = saved.split('$')
+        input_digest: str
+
+        if len(metadata) == 1: # doesn't use the new format, so assume it's legacy/MD5
+            _, _, input_digest = UserLogic.hash_password(input, method = "md5", iterations = 1).split('$')
+        else:
+            method, iterations, _ = metadata
+            input_digest = UserLogic.hash_password(input, method = method, iterations = int(iterations))
+
+        print(input_digest, saved)
+        return input_digest == saved
