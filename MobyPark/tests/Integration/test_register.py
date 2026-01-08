@@ -1,17 +1,18 @@
 import requests
 import pytest
 from DataAccesLayer.db_utils_users import delete
+import random
 
 import os
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 def test_register_endpoint():
-    DummyUser ={
-        "username": "test",
-        "password": "Test321!",
-        "name": "test Hashemy",
-        "email": "test@gmail.com",
-        "phone": "+310222939422",
+    DummyUser = {
+        "username": f"sezeven_{random.randint(1000,9999)}",
+        "password": "Sez677!!",
+        "name": "sezeven Hashemy",
+        "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
+        "phone": f"+310{random.randint(100000000, 999999999)}",
         "birth_year": 2000
     }
 

@@ -34,6 +34,14 @@ def test_delete_reservations_endpoint():
     }
 
     DummyVehicleOne = {
+        "license_plate": f"{random_number_one - 1}-{random_letters}-{random_number_two + 1}", 
+        "make": "Ford", 
+        "model": "Sport", 
+        "color": "Red", 
+        "year": "2020"
+    }
+
+    DummyVehicleTwo = {
         "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
         "make": "Ford", 
         "model": "Sport", 
@@ -84,7 +92,7 @@ def test_delete_reservations_endpoint():
     token2 = user_data.get("session_token")
     headers2 = {"Authorization": token2}
 
-    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers2)
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleTwo, headers=headers2)
     vehicle_data = vehicle_result.json()
     vehicle_model = vehicle_data["vehicle"]
     vehicle_obj = VehicleModel(**vehicle_model)

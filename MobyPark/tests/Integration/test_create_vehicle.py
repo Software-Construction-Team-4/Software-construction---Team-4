@@ -11,6 +11,8 @@ from DataAccesLayer.db_utils_users import delete as delete_user  # delete user b
 import os
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
+def random_license_plate():
+    return f"{random.randint(10,99)}-{uuid.uuid4().hex[:3].upper()}-{random.randint(1,9)}"
 
 random_user = {
     "username": f"sezeven_{random.randint(1000,9999)}",
@@ -44,13 +46,11 @@ headers = {"Authorization": token}
 @pytest.fixture
 def dummy_user_with_cleanup():
 
-
     yield {
         "user": random_user,
         "headers": headers,
         "user_id": user_id,
     }
-
 
     try:
         vehicles = VehicleAccess.get_all_user_vehicles(user_id)
@@ -66,15 +66,17 @@ def dummy_user_with_cleanup():
 def test_post_vehicles_endpoint(dummy_user_with_cleanup):
     headers1 = dummy_user_with_cleanup["headers"]
 
+    license_plate = random_license_plate()
+
     IncompleteVehicle = {
-        "license_plate": "99-XYZ-1",
+        "license_plate": license_plate,
         "make": "Tesla",
         "model": "Model 3",
         "year": "2022",
     }
 
     ValidVehicle = {
-        "license_plate": "99-XYZ-1",
+        "license_plate": license_plate,
         "make": "Tesla",
         "model": "Model 3",
         "color": "White",

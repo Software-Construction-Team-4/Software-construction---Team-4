@@ -40,6 +40,14 @@ def test_get_reservations_endpoint():
         "year": "2020"
     }
 
+    DummyVehicleTwo = {
+        "license_plate": f"{random_number_one - 1}-{random_letters}-{random_number_two + 1}", 
+        "make": "Ford", 
+        "model": "Sport", 
+        "color": "Red", 
+        "year": "2020"
+    }
+
     DummyReservationOne = {
         "parking_lot_id": "1", 
         "start_time": "2025-12-22 18:00:00",
@@ -80,7 +88,7 @@ def test_get_reservations_endpoint():
     token2 = user_data.get("session_token")
     headers2 = {"Authorization": token2}
 
-    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleOne, headers=headers2)
+    vehicle_result = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicleTwo, headers=headers2)
     vehicle_data = vehicle_result.json()
     vehicle_model = vehicle_data["vehicle"]
     vehicle_obj = VehicleModel(**vehicle_model)

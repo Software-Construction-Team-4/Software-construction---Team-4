@@ -56,6 +56,15 @@ def do_POST(self):
             }).encode("utf-8"))
             return
 
+        if VehicleAccess.license_plate_exists(data["license_plate"]):
+            self.send_response(409)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "error": "License plate alreaddy exists"
+            }).encode("utf-8"))
+            return
+
         vehicle = VehicleModel(
             -1,
             user_id,
