@@ -55,7 +55,7 @@ def do_POST(self):
                 transaction_hash=transaction_hash
             )
         else:
-            for field in ["parking_lot_id", "amount", "license_plate", "session_id"]:
+            for field in ["parking_lot_id", "amount", "license_plate", "session_id", "bank", "payment_methode"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")
