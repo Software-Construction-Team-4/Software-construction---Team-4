@@ -17,7 +17,7 @@ def do_POST(self):
         phone = data.get("phone")
         birth_year = data.get("birth_year")
 
-        hashed_password = hashlib.md5(password.encode()).hexdigest()
+        hashed_password = UserLogic.hash_password(password)
 
         passResult = UserLogic.CheckPassword(password)
         nameResult = UserLogic.CheckName(name)
@@ -51,14 +51,14 @@ def do_POST(self):
             self.end_headers()
             self.wfile.write(passErrors[passResult])
             return
-        
+
         if nameResult in nameErrors:
             self.send_response(400)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(nameErrors[nameResult])
             return
-        
+
         if emailResult in emailErrors:
             self.send_response(400)
             self.send_header("Content-type", "application/json")
@@ -73,21 +73,21 @@ def do_POST(self):
             self.wfile.write(b"Invalid phone number. Must contain only digits. Length must be 9 digits if '+' isn't provided, or 12 digits including '+' if country code is included.")
             return
 
-        
+
         if get_user_by_username(username):
             self.send_response(400)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(b"Username already taken")
             return
-        
+
         if get_user_by_email(email):
             self.send_response(400)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(b"Email is already in use")
             return
-        
+
         if get_user_by_phone(phone):
             self.send_response(400)
             self.send_header("Content-type", "application/json")
@@ -97,7 +97,7 @@ def do_POST(self):
 
         if len(phone) == 9:
             phone = "+310" + phone
-            
+
         new_user = userModel(
             id=None,
             username=username,
@@ -131,11 +131,10 @@ def do_POST(self):
                 self.end_headers()
                 self.wfile.write(b"Missing credentials")
                 return
-            hashed_password = hashlib.md5(password.encode()).hexdigest()
 
             user = get_user_by_username(username)
             if user:
-                if user.password == hashed_password:
+                if UserLogic.compare_password(password, user.password):
                     token = str(uuid.uuid4())
                     add_session(token, user)
                     self.send_response(200)
@@ -183,14 +182,14 @@ def do_PUT(self):
             self.end_headers()
             self.wfile.write(b"User not found")
             return
-        
+
         if foundUser.id != get_session(token)['user_id'] and get_session(token)['role'] != "ADMIN":
             self.send_response(404)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(b"You don't have authority to update this user")
             return
-        
+
         if "password" in data:
             passResult = UserLogic.CheckPassword(data["password"])
             passErrors = {
@@ -256,7 +255,7 @@ def do_PUT(self):
             if field in data:
                 value = data[field]
                 if field == "password":
-                    value = hashlib.md5(data[field].encode()).hexdigest()
+                    value = UserLogic.hash_password(data[field])
 
                 setattr(foundUser, field, value)
 
