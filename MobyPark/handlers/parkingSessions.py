@@ -1,13 +1,8 @@
 import json
-import requests
 from DataAccesLayer.db_utils_parkingSessions import start_session, stop_session, update_payment_status, load_sessions_by_userID
 from session_manager import get_session
-from DataAccesLayer.db_utils_reservations import get_reservation_by_user_id, update_status_only
+from DataAccesLayer.db_utils_reservations import get_reservation_by_user_id, update_status_only, get_reservation_by_user_id_for_confirmed_status
 from DataAccesLayer.vehicle_access import VehicleAccess
-from LogicLayer.paymentsLogic import paymentsLogic
-import os
-
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 def send_json(self, status_code, data):
     self.send_response(status_code)
@@ -50,8 +45,6 @@ def do_GET(self):
     send_json(self, 404, {"error": "Invalid route"})
 
 
-
-
 def do_POST(self):
     parts = self.path.strip("/").split("/")
 
@@ -63,20 +56,36 @@ def do_POST(self):
             return
         
         reservation = get_reservation_by_user_id(session_user.get("user_id"))
+
+        if reservation == None:
+            content_length = int(self.headers.get("Content-Length", 0))
+            try:
+                data = json.loads(self.rfile.read(content_length))
+            except Exception:
+                send_json(self, 400, {"error": "Invalid JSON"})
+                return
         
         if(reservation == None):
-            send_json(self, 403, {"error": "Cannot start parking session: no valid reservation found."})
-            return
+            if not data.get("parking_lot_id"):
+                send_json(self, 403, {"error": "You must give the id of the parking lot"})
+                return
         
-        vehicle = VehicleAccess.get_by_id(reservation["vehicle_id"])
+        vehicle = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
 
-        result = start_session(reservation["parking_lot_id"], vehicle.license_plate, session_user.get("user_id"))
+        if reservation == None and len(vehicle) > 0:
+            result = start_session(data.get("parking_lot_id"), vehicle[0].license_plate, session_user.get("user_id"))
+        elif reservation != None and len(vehicle) > 0:
+            result = start_session(reservation["parking_lot_id"], vehicle[0].license_plate, session_user.get("user_id"))
+        else:
+            send_json(self, 403, {"error": "You are not registered to any car"})
+            return
 
         if not result.get("ok"):
             send_json(self, 409, result)
             return
-        
-        update_status_only(reservation["id"])
+
+        if reservation != None:
+            update_status_only(reservation["id"])
 
         send_json(self, 201, {"message": "Your session has started"})
         return
@@ -88,36 +97,32 @@ def do_POST(self):
             send_json(self, 401, {"error": "Unauthorized"})
             return
         
-        content_length = int(self.headers.get("Content-Length", 0))
-        try:
-            data = json.loads(self.rfile.read(content_length))
-        except Exception:
-            send_json(self, 400, {"error": "Invalid JSON"})
-            return
-        
-        bank = data.get("bank")
-        pay_methode = data.get("payment_methode")
-        if not bank or not pay_methode:
-            send_json(self, 400, {"error": "Missing data"})
-            return
+        reservation = get_reservation_by_user_id_for_confirmed_status(session_user.get("user_id"))
+
+        if reservation == None:
+            content_length = int(self.headers.get("Content-Length", 0))
+            try:
+                data = json.loads(self.rfile.read(content_length))
+            except Exception:
+                send_json(self, 400, {"error": "Invalid JSON"})
+                return
 
         session = stop_session(session_user.get("user_id"))
         if not session:
             send_json(self, 404, {"error": "No active session found for this user"})
             return
 
-        # deze create payment create is nog hard coded maar werkt( het is makkelijk om non hard coded te maken)
-        paymentsLogic.create_payment( 
-            session=session,
-            amount=5,
-            bank=bank,
-            payment_method=pay_methode,
-            initiator=session_user.get("user_id")
-        )
+        # paymentsLogic.create_payment( 
+        #     session=session,
+        #     amount=session.cost,
+        #     bank=bank,
+        #     payment_method=pay_methode,
+        #     initiator=session_user.get("username")
+        # )
 
-        update_payment_status(session_user.get("user_id"))
+        # update_payment_status(session_user.get("user_id"))
 
-        send_json(self, 200, {"Parking session has successfully stopped"})
+        send_json(self, 200, {"succes": "Parking session has successfully stopped"})
         return
 
     send_json(self, 404, {"error": "Invalid route"})

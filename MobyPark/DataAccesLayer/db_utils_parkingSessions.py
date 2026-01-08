@@ -33,7 +33,7 @@ def start_session(parking_lot_id, licenseplate, user_id, start_time=None, end_ti
     try:
         cursor.execute(
             """
-            SELECT id, parking_lot_id, started
+            SELECT licenseplate
             FROM parking_sessions
             WHERE licenseplate = %s AND stopped IS NULL
             LIMIT 1
@@ -43,12 +43,9 @@ def start_session(parking_lot_id, licenseplate, user_id, start_time=None, end_ti
         existing = cursor.fetchone()
         if existing:
             return {
-                "ok": False,
-                "error": "Active session already exists for this license plate",
+                "error": "This vehicle is already parked",
                 "active_session": {
-                    "id": existing["id"],
-                    "parking_lot_id": existing["parking_lot_id"],
-                    "started": existing["started"],
+                    "licenseplate": existing["licenseplate"]
                 }
             }
 
@@ -184,6 +181,19 @@ def update_payment_status(user_id):
     except Exception:
         conn.rollback()
         raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_parking_session_for_payment(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True, buffered=True)
+    try:
+        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s AND payment_status=%s And stopped IS NOT NULL LIMIT 1", (user_id, "unpaid"))
+        data = cursor.fetchone()
+        if not data:
+            return None
+        return _row_to_parking_session(data)
     finally:
         cursor.close()
         conn.close()

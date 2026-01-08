@@ -184,3 +184,58 @@ def create_missed_parking_sessions():
     finally:
         cursor.close()
         conn.close()
+
+def get_reservation_by_user_id(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM reservations
+            WHERE user_id = %s
+            AND status = 'pending'
+            AND start_time <= %s
+            AND end_time >= %s
+            ORDER BY start_time ASC
+            LIMIT 1
+            """, (user_id, datetime.now(), datetime.now()))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_status_only(reservation_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE reservations
+            SET status = %s,
+            updated_at = %s
+            WHERE id = %s
+            """, ("confirmed", datetime.now(), reservation_id))
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_reservation_by_user_id_for_confirmed_status(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM reservations
+            WHERE user_id = %s
+            AND status = 'confirmed'
+            ORDER BY start_time ASC
+            LIMIT 1
+            """, (user_id,))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
