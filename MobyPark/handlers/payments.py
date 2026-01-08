@@ -4,7 +4,7 @@ from datetime import datetime
 from session_manager import get_session
 import session_calculator as sc
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
-from DataAccesLayer.db_utils_parkingLots import load_parking_lots, load_parking_lot_by_id
+from DataAccesLayer.db_utils_parkingLots import load_parking_lot_by_id
 from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
 
 def do_POST(self):
@@ -55,7 +55,7 @@ def do_POST(self):
                 transaction_hash=transaction_hash
             )
         else:
-            for field in ["parking_lot_id", "amount", "license_plate", "session_id"]:
+            for field in ["parking_lot_id", "amount", "license_plate", "session_id", "bank", "payment_methode"]:
                 if field not in data:
                     self.send_response(401)
                     self.send_header("Content-type", "application/json")

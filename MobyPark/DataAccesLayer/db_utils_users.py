@@ -102,6 +102,20 @@ def delete_users_after_id(start_id: int = 8600) -> str:
 #         cursor.close()
 #         conn.close()
 
+def _row_to_user(row):
+    return userModel(
+        id=row["id"],
+        username=row["username"],
+        password=row["password"],
+        name=row["name"],
+        email=row["email"],
+        phone=row["phone"],
+        role=row["role"],
+        created_at=row["created_at"],
+        birth_year=row["birth_year"],
+        active=row["active"]
+    )
+
 def load_users():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -112,18 +126,7 @@ def load_users():
         rows = cursor.fetchall()
 
         for row in rows:
-            user = userModel(
-                id=row["id"],
-                username=row["username"],
-                password=row["password"],
-                name=row["name"],
-                email=row["email"],
-                phone=row["phone"],
-                role=row["role"],
-                created_at=row["created_at"],
-                birth_year=row["birth_year"],
-                active=row["active"]
-            )
+            user = _row_to_user(row)
             users_list.append(user)
 
         return users_list
@@ -231,4 +234,46 @@ def delete_users_after_id():
         cursor.close()
         conn.close()
 
-    
+def get_user_by_id(id: int):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE id = %s", (id,))
+        row = cursor.fetchone()
+        return None if row is None else _row_to_user(row)
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_by_username(username: str):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        row = cursor.fetchone()
+        return None if row is None else _row_to_user(row)
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_by_email(email: str):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        row = cursor.fetchone()
+        return None if row is None else _row_to_user(row)
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_by_phone(phone: str):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE phone = %s", (phone,))
+        row = cursor.fetchone()
+        return None if row is None else _row_to_user(row)
+    finally:
+        cursor.close()
+        conn.close()

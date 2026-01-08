@@ -155,7 +155,7 @@
 #         headers=headers
 #     )
 
-#     assert response.status_code == 404
+#     assert response.status_code == 400
 #     assert response.json()["error"] == "No active session found for this plate in this parking lot"
 
 #     VehicleAccess.delete(vehicle_obj)

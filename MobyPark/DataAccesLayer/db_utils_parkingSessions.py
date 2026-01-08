@@ -92,25 +92,24 @@ def start_session(parking_lot_id, licenseplate, user_id, start_time=None, end_ti
         cursor.close()
         conn.close()
 
-
-def stop_session(parking_lot_id, licenseplate):
+def stop_session(user_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
-        cursor.execute(
-            "SELECT * FROM parking_sessions WHERE parking_lot_id=%s AND licenseplate=%s AND stopped IS NULL",
-            (parking_lot_id, licenseplate)
-        )
+        cursor.execute("""SELECT * FROM parking_sessions WHERE user = %s AND stopped IS NULL""", 
+        (user_id,))
         session = cursor.fetchone()
+
         if not session:
             return None
 
-        cursor.execute("SELECT tariff FROM parking_lots WHERE id=%s", (parking_lot_id,))
+        cursor.execute("SELECT * FROM parking_lots WHERE id = %s", (session["parking_lot_id"],))
         lot = cursor.fetchone()
 
         stopped: datetime = datetime.now()
-        cost, hours, _ = calculate_price(lot, int(session["id"]), { "started": session["started"], "stopped": stopped })
-        minutes: int = hours * 60
+        duration = stopped - session["started"]
+        minutes = int(duration.total_seconds() / 60)
+        price, hour, days = calculate_price(lot, session)
 
         cursor.execute(
             """
@@ -122,12 +121,12 @@ def stop_session(parking_lot_id, licenseplate):
               payment_status = 'unpaid'
             WHERE id = %s
             """,
-            (stopped, minutes, cost, session["id"])
+            (stopped, minutes, price, session["id"])
         )
 
         cursor.execute(
             "UPDATE parking_lots SET active_sessions = GREATEST(COALESCE(active_sessions,0)-1,0) WHERE id=%s",
-            (parking_lot_id,)
+            (session["parking_lot_id"],)
         )
 
         conn.commit()
@@ -163,6 +162,28 @@ def load_sessions_by_userID(id):
         cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (id,))
         rows = cursor.fetchall()
         return [_row_to_parking_session(row) for row in rows]
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_payment_status(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE parking_sessions
+            SET payment_status = %s
+            WHERE user = %s
+            AND stopped IS NOT NULL
+            """, 
+            ("paid", user_id))
+
+        conn.commit()
+        return
+
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cursor.close()
         conn.close()

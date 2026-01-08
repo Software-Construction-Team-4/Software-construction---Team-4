@@ -161,6 +161,7 @@ def parking_lot_exists(lot_id):
         cursor.close()
         conn.close()
 
+
 def increment_reserved(lot_id, delta):
     conn = get_db_connection()
     cursor = conn.cursor()
