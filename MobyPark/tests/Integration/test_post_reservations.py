@@ -40,12 +40,12 @@ def test_post_reservations_endpoint():
         "year": "2020"
     }
 
-#     DummyReservationOne = {
-#         "parking_lot_id": "1", 
-#         "start_time": "2030-12-22 18:00:00",
-#         "end_time": "2030-12-22 19:00:00",
-#         "cost": 14,
-#     }
+    DummyReservationOne = {
+        "parking_lot_id": "1", 
+        "start_time": "2025-12-22 18:00:00",
+        "end_time": "2025-12-22 19:00:00",
+        "cost": 14,
+    }
 
     requests.post(f"{BASE_URL}/register", json=DummyUserOne)
 
@@ -92,12 +92,12 @@ def test_post_reservations_endpoint():
         "year": "2020"
     }
 
-#     DummyReservationTwo = {
-#         "parking_lot_id": "99999999",
-#         "start_time": "2030-12-22 18:00:00",
-#         "end_time": "2030-12-22 19:00:00",
-#         "cost": 14,
-#     }
+    DummyReservationTwo = {
+        "parking_lot_id": "99999999",
+        "start_time": "2025-12-22 18:00:00",
+        "end_time": "2025-12-22 19:00:00",
+        "cost": 14,
+    }
 
     requests.post(f"{BASE_URL}/register", json=DummyUserTwo)
 
