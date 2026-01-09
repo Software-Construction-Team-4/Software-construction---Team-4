@@ -97,7 +97,7 @@ def do_POST(self):
             send_json(self, 401, {"error": "Unauthorized"})
             return
         
-        reservation = get_reservation_by_user_id_for_confirmed_status(session_user.get("user_id"))
+        reservation = get_reservation_by_user_id_for_confirmed_status(session_user.get("user_id"))#moet verbeterd worden want als je reservatie over maand is en je hebt vandaag sessie gestart dan is dat niet op basis van reservatie dus moet reservatie ook null zijn. moet zoeken op reservatie van gegeven user_id waar status ook confiremd is
 
         if reservation == None:
             content_length = int(self.headers.get("Content-Length", 0))
