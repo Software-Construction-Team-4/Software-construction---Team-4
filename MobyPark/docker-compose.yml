@@ -7,4 +7,4 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-    command: python -u server.py
+    command: sh -c "cron && python -u server.py"
