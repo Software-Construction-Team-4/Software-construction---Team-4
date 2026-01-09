@@ -197,3 +197,24 @@ def get_parking_session_for_payment(user_id):
     finally:
         cursor.close()
         conn.close()
+
+def update_payment_status_for_refund(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE parking_sessions
+            SET payment_status = %s
+            WHERE id = %s
+            """, 
+            ("refunded", id))
+
+        conn.commit()
+        return
+
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()

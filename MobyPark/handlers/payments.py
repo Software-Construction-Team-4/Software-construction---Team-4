@@ -5,7 +5,7 @@ from session_manager import get_session
 import session_calculator as sc
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
 from DataAccesLayer.db_utils_parkingLots import load_parking_lot_by_id
-from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID, get_parking_session_for_payment, update_payment_status
+from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID, get_parking_session_for_payment, update_payment_status, update_payment_status_for_refund
 from LogicLayer.paymentsLogic import create_issuer_code
 
 def do_POST(self):
@@ -18,7 +18,6 @@ def do_POST(self):
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
 
-        #payments = load_payment_data()
         session_user = get_session(token)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
@@ -30,31 +29,23 @@ def do_POST(self):
                 self.wfile.write(b"Access denied")
                 return
 
-            for field in ["amount", "parking_lot_id", "license_plate", "session_id"]:
-                if field not in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                    return
+            if "id" not in data:
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write("error: Require field missing, field: id".encode("utf-8"))
+                return
+            
+            payments_instance = PaymentsDataAccess()
+            payment = payments_instance.get_by_id(data.get("id"))
+            update_payment_status_for_refund(payment.session_id)
 
-            payment_hash = data.get("transaction") if data.get("transaction") else sc.generate_payment_hash()
-            transaction_hash = sc.generate_transaction_validation_hash(data.get("session_id"), data.get("license_plate", ""))
+            self.send_response(201)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write("succes: The user has been refunded".encode("utf-8"))
+            return
 
-            payment = PaymentsModel(
-                amount=-abs(data.get("amount", 0)),
-                created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                completed_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                payment_hash=payment_hash,
-                initiator=session_user["username"],
-                parking_lot_id=data["parking_lot_id"],
-                session_id=data.get("session_id"),
-                bank=data.get("bank"),
-                transaction_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                issuer_code=create_issuer_code(),
-                payment_method=data.get("payment_method"),
-                transaction_hash=transaction_hash
-            )
         else:
             for field in ["bank", "payment_method"]:
                 if field not in data:
@@ -83,7 +74,7 @@ def do_POST(self):
                 payment_hash=payment_hash,
                 initiator=session_user.get("username"),
                 parking_lot_id=parking_session.parking_lot_id,
-                session_id=parking_session.session,
+                session_id=parking_session.id,
                 bank=data.get("bank"),
                 transaction_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 issuer_code=create_issuer_code(),
