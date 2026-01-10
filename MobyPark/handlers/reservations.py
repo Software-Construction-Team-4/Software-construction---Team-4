@@ -58,7 +58,7 @@ def do_POST(self):
             end_time=data["end_time"],
             status="pending",
             created_at=datetime.now(),
-            cost=data["cost"],
+            cost=None,
             updated_at=None
         )
 
