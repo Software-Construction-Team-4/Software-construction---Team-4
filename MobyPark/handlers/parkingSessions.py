@@ -96,31 +96,11 @@ def do_POST(self):
         if not session_user:
             send_json(self, 401, {"error": "Unauthorized"})
             return
-        
-        reservation = get_reservation_by_user_id_for_confirmed_status(session_user.get("user_id"))#moet verbeterd worden want als je reservatie over maand is en je hebt vandaag sessie gestart dan is dat niet op basis van reservatie dus moet reservatie ook null zijn. moet zoeken op reservatie van gegeven user_id waar status ook confiremd is
-
-        if reservation == None:
-            content_length = int(self.headers.get("Content-Length", 0))
-            try:
-                data = json.loads(self.rfile.read(content_length))
-            except Exception:
-                send_json(self, 400, {"error": "Invalid JSON"})
-                return
 
         session = stop_session(session_user.get("user_id"))
         if not session:
             send_json(self, 404, {"error": "No active session found for this user"})
             return
-
-        # paymentsLogic.create_payment( 
-        #     session=session,
-        #     amount=session.cost,
-        #     bank=bank,
-        #     payment_method=pay_methode,
-        #     initiator=session_user.get("username")
-        # )
-
-        # update_payment_status(session_user.get("user_id"))
 
         send_json(self, 200, {"succes": "Parking session has successfully stopped"})
         return
