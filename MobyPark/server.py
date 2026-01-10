@@ -160,7 +160,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             handle_get(self)
             return
         elif self.path.startswith("/billing/"):
-            from handlers.payments import do_GET_test as handle_get1
+            from handlers.payments import do_GET as handle_get1
             handle_get1(self)
             return
         elif self.path == "/billing":

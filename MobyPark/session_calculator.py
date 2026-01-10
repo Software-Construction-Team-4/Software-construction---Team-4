@@ -58,4 +58,4 @@ def check_payment_amount(tx_hash):
     data_access = PaymentsDataAccess()
 
     payment = data_access.get_by_transaction_hash(tx_hash)
-    return payment.amount
+    return float(payment.amount)

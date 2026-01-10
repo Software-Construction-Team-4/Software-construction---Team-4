@@ -101,21 +101,47 @@ def do_PUT(self):
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
         
+        session_user = get_session(token)
+        if session_user.get('role') != 'ADMIN':
+            self.send_response(403)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"Access denied")
+            return
+        
         data_access = PaymentsDataAccess()
         pid = self.path.replace("/payments/", "")
-        #payments = load_payment_data()
-        session_user = get_session(token)
-        data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+        # data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            if content_length == 0:
+                data = {}
+            else:
+                raw_body = self.rfile.read(content_length)
+                data = json.loads(raw_body.decode("utf-8"))
+        except Exception:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b'Invalid JSON')
+            return
 
         payment = data_access.get_by_id(pid)
         if payment:
-            for field in ["payment_method", "bank", "issuer_code", "transaction_hash"]:
-                if field not in data:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
-                    return
+            if "transaction_hash" not in data:
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Require field missing", "field": "transaction_hash"}).encode("utf-8"))
+                return
+        
+            allowed_keys = ["payment_method", "bank", "issuer_code"]
+
+            if not any(key in data for key in allowed_keys):
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "you must give either 'bank', 'payment_method' or 'issuer_code' to update"}).encode("utf-8"))
+                return
 
             if payment.transaction_hash != data.get("transaction_hash"):
                 self.send_response(401)
@@ -129,11 +155,10 @@ def do_PUT(self):
                 }).encode("utf-8"))
                 return
 
-            payment.completed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            payment.bank = data.get("bank")
-            payment.transaction_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            payment.issuer_code = data.get("issuer_code")
-            payment.payment_method = data.get("payment_method")
+            for i in allowed_keys:
+                if i in data:
+                    setattr(payment, i, data[i])
+
             data_access.update_payment(payment)
 
             self.send_response(200)
@@ -162,9 +187,7 @@ def do_GET(self):
         session_user = get_session(token)
         data_access = PaymentsDataAccess()
         payments = data_access.get_by_initiator(session_user["username"])
-        #for payment in load_payment_data():
-        #    if payment.get("initiator") == session_user["username"]:
-        #        payments.append(payment)
+
         paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
         self.send_header("Content-type", "application/json")
@@ -214,7 +237,6 @@ def do_GET(self):
         session_user = get_session(token)
         user = session_user.get("user_id")
         sessions = load_sessions_by_userID(user)
-        data_access = PaymentsDataAccess()
 
         for sess in sessions:
             parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
@@ -237,7 +259,7 @@ def do_GET(self):
                 "user": sess.user_id
             }
 
-            amount, hours, days = sc.calculate_price(parkinglot, str(sess.session), session_dict)
+            amount, hours, days = sc.calculate_price(parkinglot, session_dict)
 
             transaction = sc.generate_transaction_validation_hash(sess.session, session_dict["licenseplate"])
             payed = sc.check_payment_amount(transaction)
@@ -279,7 +301,6 @@ def do_GET(self):
         user = self.path.replace("/billing/", "")
         data = []
         sessions = load_sessions_by_userID(user)
-        data_access = PaymentsDataAccess()
 
         for sess in sessions:
             parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
@@ -301,8 +322,8 @@ def do_GET(self):
                 "stopped": stopped,
                 "user": sess.user_id
             }
-
-            amount, hours, days = sc.calculate_price(parkinglot, str(sess.session), session_dict)
+            
+            amount, hours, days = sc.calculate_price(parkinglot, session_dict)
 
             transaction = sc.generate_transaction_validation_hash(sess.session, session_dict["licenseplate"])
             payed = sc.check_payment_amount(transaction)

@@ -78,7 +78,7 @@ class PaymentsDataAccess:
     def get_by_transaction_hash(self, txHash: str):
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(dictionary=True, buffered=True)
             cursor.execute("SELECT * FROM payments WHERE transaction_hash = %s", (txHash,))
             row = cursor.fetchone()
             return None if row is None else _row_to_payment(row)
