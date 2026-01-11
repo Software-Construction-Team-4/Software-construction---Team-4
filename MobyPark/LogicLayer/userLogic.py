@@ -3,6 +3,7 @@ import hashlib
 
 class UserLogic:
     HASH_FORMAT = "{method}${iterations}${hash}"
+    HASH_METHOD = "sha256"
     HASH_ITERATIONS = 100
 
     def CheckPassword(password):
@@ -84,7 +85,7 @@ class UserLogic:
             return 0
 
     @staticmethod
-    def hash_password(password: str, method: str = "sha256", iterations: int = HASH_ITERATIONS) -> str:
+    def hash_password(password: str, method: str = HASH_METHOD, iterations: int = HASH_ITERATIONS) -> str:
         hash = None
         if method == "sha256":
             hash = hashlib.sha256()

@@ -1,6 +1,7 @@
 # test_delete_vehicle.py
 
 import requests
+from LogicLayer.userLogic import UserLogic
 import pytest
 import random
 import uuid
@@ -76,7 +77,7 @@ def normal_and_admin_users():
 
     admin_username = f"admin_delete_{uuid.uuid4().hex[:6]}"
     admin_password_plain = "321"
-    admin_password_hashed = hashlib.md5(admin_password_plain.encode()).hexdigest()
+    admin_password_hashed = UserLogic.hash_password(admin_password_plain)
 
     admin_user_model = userModel(
         id=None,

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Union
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess
-from hashlib import md5
+from hashlib import sha256
 import math
 import uuid
 
@@ -46,7 +46,7 @@ def calculate_price(parkinglot, data) -> tuple[float, float, int]:
 
 def generate_transaction_validation_hash(sid, licenseplate):
     text = str(sid) + str(licenseplate).strip()
-    return md5(text.encode("utf-8")).hexdigest()
+    return sha256(text.encode("utf-8")).hexdigest()
 
 
 
