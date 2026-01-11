@@ -76,7 +76,7 @@ def normal_and_admin_users():
 
     admin_username = f"admin_delete_{uuid.uuid4().hex[:6]}"
     admin_password_plain = "321"
-    admin_password_hashed = hashlib.md5(admin_password_plain.encode()).hexdigest()
+    admin_password_hashed = hashlib.sha256(admin_password_plain.encode()).hexdigest()
 
     admin_user_model = userModel(
         id=None,
