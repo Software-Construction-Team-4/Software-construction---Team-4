@@ -1,7 +1,7 @@
 import json
 from LogicLayer.lotsLogic import load_parking_lots, load_parking_lot_by_id
 from DataAccesLayer.db_utils_parkingLots import save_parking_lot, update_parking_lot, delete_parking_lot
-import parkingSessions
+from handlers import parkingSessions
 from session_manager import get_session
 
 def send_json(self, status_code, data):

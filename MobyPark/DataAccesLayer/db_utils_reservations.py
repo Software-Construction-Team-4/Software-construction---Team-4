@@ -1,8 +1,8 @@
 import mysql.connector
-from DataAccesLayer.db_utils_parkingSessions import start_session
 from DataModels.reservationsModel import Reservations
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
+from LogicLayer.sessionLogic import start_parking_session
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -165,7 +165,7 @@ def create_missed_parking_sessions():
 
             daytariff = Decimal(lot["daytariff"])
 
-            result = start_session(
+            result = start_parking_session(
                 parking_lot_id=parking_lot_id,
                 licenseplate=license_plate,
                 user_id=user_id,
