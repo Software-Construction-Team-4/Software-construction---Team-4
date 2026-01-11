@@ -1,14 +1,7 @@
 import json
-from LogicLayer.sessionLogic import (
-    start_parking_session,
-    stop_parking_session,
-    load_sessions_for_user
-)
+from LogicLayer.sessionLogic import start_parking_session, stop_parking_session, load_sessions_for_user
 from session_manager import get_session
-from DataAccesLayer.db_utils_reservations import (
-    get_reservation_by_user_id,
-    update_status_only
-)
+from DataAccesLayer.db_utils_reservations import get_reservation_by_user_id, update_status_only
 from DataAccesLayer.vehicle_access import VehicleAccess
 
 

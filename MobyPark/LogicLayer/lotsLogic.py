@@ -1,14 +1,5 @@
-from DataAccesLayer.db_utils_parkingLots import (
-    load_all_parking_lots_from_db,
-    load_parking_lot_row_by_id,
-    update_parking_lot,
-    create_parking_lot_from_row,
-    load_active_session_count
-)
-from DataAccesLayer.db_utils_reservations import (
-    create_missed_parking_sessions,
-    get_today_reservations_count_by_lot
-)
+from DataAccesLayer.db_utils_parkingLots import load_all_parking_lots_from_db, load_parking_lot_row_by_id, update_parking_lot, create_parking_lot_from_row, load_active_session_count
+from DataAccesLayer.db_utils_reservations import create_missed_parking_sessions, get_today_reservations_count_by_lot
 
 def load_parking_lots():
     create_missed_parking_sessions()

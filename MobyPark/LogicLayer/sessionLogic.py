@@ -1,21 +1,5 @@
 from datetime import datetime
-from DataAccesLayer.db_utils_parkingSessions import (
-    get_db_connection,
-    create_parking_session_from_row,
-    find_active_session_by_licenseplate,
-    get_next_session_number,
-    insert_parking_session,
-    increase_active_sessions,
-    find_active_session_by_user,
-    update_session_on_stop,
-    decrease_active_sessions,
-    get_parking_lot,
-    get_session_by_id,
-    load_sessions_by_user,
-    mark_sessions_as_paid,
-    get_unpaid_session_for_user,
-    mark_session_as_refunded
-)
+from DataAccesLayer.db_utils_parkingSessions import get_db_connection, create_parking_session_from_row, find_active_session_by_licenseplate, get_next_session_number, insert_parking_session, increase_active_sessions, find_active_session_by_user, update_session_on_stop, decrease_active_sessions, get_parking_lot, get_session_by_id, load_sessions_by_user, mark_sessions_as_paid, get_unpaid_session_for_user, mark_session_as_refunded
 from session_calculator import calculate_price
 
 
