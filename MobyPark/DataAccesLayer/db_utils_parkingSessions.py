@@ -1,7 +1,5 @@
-from datetime import datetime
 import mysql.connector
 from DataModels.parkingSessionModel import ParkingSession
-from session_calculator import calculate_price
 
 
 def get_db_connection():
@@ -13,7 +11,8 @@ def get_db_connection():
         database="mobypark"
     )
 
-def _row_to_parking_session(row):
+
+def create_parking_session_from_row(row):
     return ParkingSession(
         id=row["id"],
         parking_lot_id=row["parking_lot_id"],
@@ -27,194 +26,139 @@ def _row_to_parking_session(row):
         payment_status=row["payment_status"]
     )
 
-def start_session(parking_lot_id, licenseplate, user_id, start_time=None, end_time=None, cost=None):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute(
-            """
-            SELECT licenseplate
-            FROM parking_sessions
-            WHERE licenseplate = %s AND stopped IS NULL
-            LIMIT 1
-            """,
-            (licenseplate,)
+
+def find_active_session_by_licenseplate(connection, licenseplate):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute(
+        """
+        SELECT licenseplate
+        FROM parking_sessions
+        WHERE licenseplate = %s AND stopped IS NULL
+        LIMIT 1
+        """,
+        (licenseplate,)
+    )
+    return cursor.fetchone()
+
+
+def get_next_session_number(connection, parking_lot_id):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute(
+        "SELECT COALESCE(MAX(session), 0) + 1 AS next_num FROM parking_sessions WHERE parking_lot_id=%s",
+        (parking_lot_id,)
+    )
+    return cursor.fetchone()["next_num"]
+
+
+def insert_parking_session(connection, session_data):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute(
+        """
+        INSERT INTO parking_sessions
+          (parking_lot_id, licenseplate, started, stopped, user,
+           duration_minutes, cost, payment_status, session)
+        VALUES
+          (%s, %s, %s, %s, %s, 0, %s, 'pending', %s)
+        """,
+        (
+            session_data["parking_lot_id"],
+            session_data["licenseplate"],
+            session_data["started"],
+            session_data["stopped"],
+            session_data["user_id"],
+            session_data["cost"],
+            session_data["session_number"]
         )
-        existing = cursor.fetchone()
-        if existing:
-            return {
-                "error": "This vehicle is already parked",
-                "active_session": {
-                    "licenseplate": existing["licenseplate"]
-                }
-            }
-
-        cursor.execute(
-            "SELECT COALESCE(MAX(session), 0) + 1 AS next_num FROM parking_sessions WHERE parking_lot_id=%s",
-            (parking_lot_id,)
-        )
-        next_session_number = cursor.fetchone()["next_num"]
-
-        started_value = start_time if start_time else datetime.now()
-        stopped_value = end_time
-
-        cursor.execute(
-            """
-            INSERT INTO parking_sessions
-              (parking_lot_id, licenseplate, started, stopped, user,
-               duration_minutes, cost, payment_status, session)
-            VALUES
-              (%s, %s, %s, %s, %s, 0, %s, 'pending', %s)
-            """,
-            (
-                parking_lot_id,
-                licenseplate,
-                started_value,
-                stopped_value,
-                user_id,
-                cost if cost is not None else 0,
-                next_session_number
-            )
-        )
-
-        cursor.execute(
-            "UPDATE parking_lots SET active_sessions = COALESCE(active_sessions,0) + 1 WHERE id=%s",
-            (parking_lot_id,)
-        )
-
-        conn.commit()
-        return {"ok": True, "session_id": cursor.lastrowid}
-
-    finally:
-        cursor.close()
-        conn.close()
-
-def stop_session(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute("""SELECT * FROM parking_sessions WHERE user = %s AND stopped IS NULL""", 
-        (user_id,))
-        session = cursor.fetchone()
-
-        if not session:
-            return None
-
-        cursor.execute("SELECT * FROM parking_lots WHERE id = %s", (session["parking_lot_id"],))
-        lot = cursor.fetchone()
-
-        stopped: datetime = datetime.now()
-        duration = stopped - session["started"]
-        minutes = int(duration.total_seconds() / 60)
-        price, hour, days = calculate_price(lot, session)
-
-        cursor.execute(
-            """
-            UPDATE parking_sessions
-            SET
-              stopped = %s,
-              duration_minutes = %s,
-              cost = %s,
-              payment_status = 'unpaid'
-            WHERE id = %s
-            """,
-            (stopped, minutes, price, session["id"])
-        )
-
-        cursor.execute(
-            "UPDATE parking_lots SET active_sessions = GREATEST(COALESCE(active_sessions,0)-1,0) WHERE id=%s",
-            (session["parking_lot_id"],)
-        )
-
-        conn.commit()
-
-        cursor.execute("SELECT * FROM parking_sessions WHERE id=%s", (session["id"],))
-        updated_session = cursor.fetchone()
-        return _row_to_parking_session(updated_session)
-    finally:
-        cursor.close()
-        conn.close()
+    )
+    return cursor.lastrowid
 
 
-def load_sessions(parking_lot_id=None):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        if parking_lot_id:
-            cursor.execute("SELECT * FROM parking_sessions WHERE parking_lot_id=%s", (parking_lot_id,))
-        else:
-            cursor.execute("SELECT * FROM parking_sessions")
-
-        rows = cursor.fetchall()
-        return {str(row["id"]): _row_to_parking_session(row) for row in rows}
-    finally:
-        cursor.close()
-        conn.close()
+def increase_active_sessions(connection, parking_lot_id):
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE parking_lots SET active_sessions = COALESCE(active_sessions,0) + 1 WHERE id=%s",
+        (parking_lot_id,)
+    )
 
 
-def load_sessions_by_userID(id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (id,))
-        rows = cursor.fetchall()
-        return [_row_to_parking_session(row) for row in rows]
-    finally:
-        cursor.close()
-        conn.close()
+def find_active_session_by_user(connection, user_id):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute(
+        "SELECT * FROM parking_sessions WHERE user = %s AND stopped IS NULL",
+        (user_id,)
+    )
+    return cursor.fetchone()
 
-def update_payment_status(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE parking_sessions
-            SET payment_status = %s
-            WHERE user = %s
-            AND stopped IS NOT NULL
-            """, 
-            ("paid", user_id))
 
-        conn.commit()
-        return
+def update_session_on_stop(connection, session_id, stopped, minutes, price):
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        UPDATE parking_sessions
+        SET stopped = %s,
+            duration_minutes = %s,
+            cost = %s,
+            payment_status = 'unpaid'
+        WHERE id = %s
+        """,
+        (stopped, minutes, price, session_id)
+    )
 
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cursor.close()
-        conn.close()
 
-def get_parking_session_for_payment(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    try:
-        cursor.execute("SELECT * FROM parking_sessions WHERE user=%s AND payment_status=%s And stopped IS NOT NULL LIMIT 1", (user_id, "unpaid"))
-        data = cursor.fetchone()
-        if not data:
-            return None
-        return _row_to_parking_session(data)
-    finally:
-        cursor.close()
-        conn.close()
+def decrease_active_sessions(connection, parking_lot_id):
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE parking_lots SET active_sessions = GREATEST(COALESCE(active_sessions,0)-1,0) WHERE id=%s",
+        (parking_lot_id,)
+    )
 
-def update_payment_status_for_refund(id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE parking_sessions
-            SET payment_status = %s
-            WHERE id = %s
-            """, 
-            ("refunded", id))
 
-        conn.commit()
-        return
+def get_parking_lot(connection, lot_id):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute("SELECT * FROM parking_lots WHERE id=%s", (lot_id,))
+    return cursor.fetchone()
 
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cursor.close()
-        conn.close()
+
+def get_session_by_id(connection, session_id):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute("SELECT * FROM parking_sessions WHERE id=%s", (session_id,))
+    return cursor.fetchone()
+
+
+def load_sessions_by_user(connection, user_id):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute("SELECT * FROM parking_sessions WHERE user=%s", (user_id,))
+    return cursor.fetchall()
+
+
+def mark_sessions_as_paid(connection, user_id):
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        UPDATE parking_sessions
+        SET payment_status = %s
+        WHERE user = %s AND stopped IS NOT NULL
+        """,
+        ("paid", user_id)
+    )
+
+
+def get_unpaid_session_for_user(connection, user_id):
+    cursor = connection.cursor(dictionary=True, buffered=True)
+    cursor.execute(
+        """
+        SELECT * FROM parking_sessions
+        WHERE user=%s AND payment_status=%s AND stopped IS NOT NULL
+        LIMIT 1
+        """,
+        (user_id, "unpaid")
+    )
+    return cursor.fetchone()
+
+
+def mark_session_as_refunded(connection, session_id):
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE parking_sessions SET payment_status=%s WHERE id=%s",
+        ("refunded", session_id)
+    )

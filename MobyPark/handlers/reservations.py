@@ -1,14 +1,14 @@
 import json
-# import datetime
-from datetime import datetime, date
-from DataAccesLayer.db_utils_reservations import save_reservation_data, load_reservation_data, update_reservation_data, delete_reservation, get_reservation_by_id  # pyright: ignore[reportUnknownVariableType]
+from datetime import datetime
 from session_manager import get_session
 from DataModels.reservationsModel import Reservations
+from DataAccesLayer.db_utils_reservations import save_reservation_data, update_reservation_data, get_reservation_by_id
 from DataAccesLayer.vehicle_access import VehicleAccess
-from DataAccesLayer.db_utils_parkingLots import save_parking_lot, update_parking_lot, parking_lot_exists
+from DataAccesLayer.db_utils_parkingLots import update_parking_lot, parking_lot_exists
 
 def update_parking_lot_reserved(lot_id, delta=1):
     update_parking_lot(lot_id, {"reserved": delta})
+
 
 def do_POST(self):
     if self.path == "/reservations":
@@ -23,7 +23,6 @@ def do_POST(self):
         session_user = get_session(token)
         id_of_user = session_user.get("user_id")
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
-
 
         for field in ["start_time", "end_time", "parking_lot_id"]:
             if field not in data:
@@ -77,6 +76,7 @@ def do_POST(self):
             ).encode("utf-8")
         )
 
+
 def do_PUT(self):
     if self.path.startswith("/reservations/"):
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
@@ -98,14 +98,6 @@ def do_PUT(self):
             self.end_headers()
             self.wfile.write(b"Unauthorized: Invalid or missing session token")
             return
-
-        # for field in ["parking_lot_id", "start_time", "end_time", "status", "created_at", "cost", "updated_at"]:
-        #     if field not in data:
-        #         self.send_response(400)
-        #         self.send_header("Content-type", "application/json")
-        #         self.end_headers()
-        #         self.wfile.write(json.dumps({"error": "Required field missing", "field": field}).encode("utf-8"))
-        #         return
 
         if session_user.get('role') != 'ADMIN' and str(found_res_dict.get("user_id")) != str(session_user.get('user_id')):
             self.send_response(403)
@@ -151,7 +143,6 @@ def do_PUT(self):
         status = found_res_dict["status"]
         cost = found_res_dict["cost"]
 
-
         user_vehicles = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
 
         updated_reservation = Reservations(
@@ -167,7 +158,6 @@ def do_PUT(self):
             updated_at=datetime.now()
         )
 
-        # Update reserved count based on status change
         if "status" in data:
             old_status = found_res_dict.get("status")
             new_status = data["status"]
