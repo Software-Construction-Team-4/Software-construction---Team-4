@@ -239,31 +239,3 @@ def get_reservation_by_user_id_for_confirmed_status(user_id):
     finally:
         cursor.close()
         conn.close()
-
-def cehck_and_update_reservation_status_12_hours():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    try:
-        cursor.execute("""
-            SELECT *
-            FROM reservations
-            WHERE status = 'pending'
-            AND end_time < NOW()
-        """)
-        expired_reservations = cursor.fetchall()
-        
-        for reservation in expired_reservations:
-            cursor.execute("""
-                UPDATE reservations
-                SET status = 'expired'
-                WHERE id = %s
-            """, (reservation['id'],))
-        
-        conn.commit()
-
-        return expired_reservations
-    
-    finally:
-        cursor.close()
-        conn.close()
