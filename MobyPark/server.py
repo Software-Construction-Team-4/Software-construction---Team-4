@@ -1,31 +1,12 @@
-import json
 import os
 import time
-import urllib.request
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import socket
 
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from logger import Logger
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-    def _discord_send(self, content: str):
-        if not DISCORD_WEBHOOK_URL:
-            return
-        try:
-            data = json.dumps({"content": content}).encode("utf-8")
-            req = urllib.request.Request(
-                DISCORD_WEBHOOK_URL,
-                data=data,
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            urllib.request.urlopen(req, timeout=3).read()
-        except Exception:
-            pass
-
-    def log_message(self, format, *args):
-        return
-    
     def handle_one_request(self):
         self._start_time = time.time()
         super().handle_one_request()
@@ -42,8 +23,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             client_ip = self.client_address[0] if self.client_address else "unknown"
             duration_ms = int((time.time() - getattr(self, "_start_time", time.time())) * 1000)
 
-            self._discord_send(
-                f"📥 {method} {path} | {status} | {duration_ms}ms | ip={client_ip}"
+            Logger.log(
+                f"Request: {method} {path} | {status} | {duration_ms}ms | ip={client_ip}"
             )
         except Exception:
             pass
@@ -184,5 +165,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     server = HTTPServer(("0.0.0.0", 8000), RequestHandler)
-    print("Server running on http://0.0.0.0:8000")
-    server.serve_forever()
+
+
+    ip = socket.gethostbyname(socket.gethostname())
+    url = f"http://{ip}:{server.server_port}"
+
+    print(f"Server running on {url}")
+    Logger.log(f"Server has started on `{url}` [(open)]({url})")
+
+    try:
+        server.serve_forever()
+    except Exception as exception:
+        print(f"An error occurred:\n{exception}")
+        Logger.error(exception)
