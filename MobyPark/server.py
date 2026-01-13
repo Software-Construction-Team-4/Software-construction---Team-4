@@ -33,7 +33,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         return super().end_headers()
 
-    def handle_error(self, exception: Exception):
+    def handle_error(self):
         error: str = f"Exception occurred during processing of request from `{self.client_address[0]}` @ `{self.command} {self.path}`"
         error_message: str = traceback.format_exc()
         Logger.error(error, error_message)
@@ -43,11 +43,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             if self.path == "/register":
                 from handlers.user import do_POST as handle_post
-                self.handle_error(handle_post)
+                handle_post(self)
                 return
             elif self.path == "/login":
                 from handlers.user import do_POST as handle_post
-                self.handle_error(handle_post)
+                handle_post(self)
                 return
             elif self.path.startswith("/parking-lots"):
                 from handlers.parkingLots import do_POST as parking_post
