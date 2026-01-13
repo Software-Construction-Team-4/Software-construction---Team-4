@@ -198,12 +198,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     server = HTTPServer(("0.0.0.0", 8000), RequestHandler)
 
-
-    ip = socket.gethostbyname(socket.gethostname())
-    url = f"http://{ip}:{server.server_port}"
-
-    print(f"Server running on {url}")
-    Logger.log(f"Server has started on `{url}` [(open)]({url})", colour = 0xED1F9B)
+    print(f"Server running on port {server.server_port}")
+    Logger.log(f"Server has started on port `{server.server_port}`", colour = 0xED1F9B)
 
     try:
         server.serve_forever()
