@@ -12,8 +12,7 @@ class Logger:
         ERROR = "error"
 
 
-    DISCORD_WEBHOOK_URL =  "https://discord.com/api/webhooks/1459289003890180117/LEOzMqwLe4kqnfYwh7f6TqJ6BBFEktBWTwpwCBZ41pGlZGeH9PxrWnk6fHA36frRBMca"
-    # os.getenv("DISCORD_WEBHOOK_URL")
+    DISCORD_WEBHOOK_URL =  os.getenv("DISCORD_WEBHOOK_URL")
 
     FORMAT_TIMESTAMP = "<t:{timestamp}:R>"
     FORMAT_ERROR = "```py\n{exception}\n```"

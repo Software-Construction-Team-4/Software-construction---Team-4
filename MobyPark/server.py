@@ -203,7 +203,7 @@ if __name__ == "__main__":
     url = f"http://{ip}:{server.server_port}"
 
     print(f"Server running on {url}")
-    # Logger.log(f"Server has started on `{url}` [(open)]({url})")
+    Logger.log(f"Server has started on `{url}` [(open)]({url})", colour = 0xED1F9B)
 
     try:
         server.serve_forever()
