@@ -49,6 +49,6 @@ class Logger:
         Logger.log(message, level = Logger.Level.WARN, colour = 0xF9BB37)
 
     @staticmethod
-    def error(exception: Union[Exception, str]) -> None:
-        Logger.log(f"An error has occurred!\n{Logger.FORMAT_ERROR.format(exception = str(exception))}",
+    def error(message: str, exception: Union[Exception, str]) -> None:
+        Logger.log(f"{message}\n{Logger.FORMAT_ERROR.format(exception = str(exception))}",
                    level = Logger.Level.ERROR, mention = True, colour = 0xDB3C1D)

@@ -1,8 +1,10 @@
 import os
+import sys
 import time
 import socket
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import traceback
 from logger import Logger
 
 
@@ -26,39 +28,51 @@ class RequestHandler(BaseHTTPRequestHandler):
             Logger.log(
                 f"Request: {method} {path} | {status} | {duration_ms}ms | ip={client_ip}"
             )
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
         return super().end_headers()
 
+    def handle_error(self, exception: Exception):
+        error: str = f"Exception occurred during processing of request from `{self.client_address[0]}` @ `{self.command} {self.path}`"
+        error_message: str = traceback.format_exc()
+        Logger.error(error, error_message)
+        print(f"{error}\n{error_message}")
+
     def do_POST(self):
-        if self.path == "/register":
-            from handlers.user import do_POST as handle_post
-            handle_post(self)
-            return
-        elif self.path == "/login":
-            from handlers.user import do_POST as handle_post
-            handle_post(self)
-            return
-        elif self.path.startswith("/parking-lots"):
-            from handlers.parkingLots import do_POST as parking_post
-            parking_post(self)
-            return
-        elif self.path == "/reservations":
-            from handlers.reservations import do_POST as handle_post
-            handle_post(self)
-            return
-        elif self.path == "/vehicles":
-            from handlers.vehicles import do_POST as handle_post
-            handle_post(self)
-            return
-        elif self.path.startswith("/vehicles/"):
-            from handlers.vehicles import do_POST as handle_post
-            handle_post(self)
-            return
-        elif self.path.startswith("/payments"):
-            from handlers.payments import do_POST as handle_post
-            handle_post(self)
+        try:
+            if self.path == "/register":
+                from handlers.user import do_POST as handle_post
+                self.handle_error(handle_post)
+                return
+            elif self.path == "/login":
+                from handlers.user import do_POST as handle_post
+                self.handle_error(handle_post)
+                return
+            elif self.path.startswith("/parking-lots"):
+                from handlers.parkingLots import do_POST as parking_post
+                parking_post(self)
+                return
+            elif self.path == "/reservations":
+                from handlers.reservations import do_POST as handle_post
+                handle_post(self)
+                return
+            elif self.path == "/vehicles":
+                from handlers.vehicles import do_POST as handle_post
+                handle_post(self)
+                return
+            elif self.path.startswith("/vehicles/"):
+                from handlers.vehicles import do_POST as handle_post
+                handle_post(self)
+                return
+            elif self.path.startswith("/payments"):
+                from handlers.payments import do_POST as handle_post
+                handle_post(self)
+                return
+        except Exception as e:
+            self.handle_error(e)
+            self.send_response(500)
+            self.end_headers()
             return
 
         self.send_response(404)
@@ -67,25 +81,31 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b'{"error":"Route not found"}')
 
     def do_PUT(self):
-        if self.path.startswith("/parking-lots/"):
-            from handlers.parkingLots import do_PUT as parking_put
-            parking_put(self)
-            return
-        elif self.path == "/profile":
-            from handlers.user import do_PUT as handle_put
-            handle_put(self)
-            return
-        elif self.path.startswith("/reservations/"):
-            from handlers.reservations import do_PUT as handle_put
-            handle_put(self)
-            return
-        elif self.path.startswith("/vehicles/"):
-            from handlers.vehicles import do_PUT as handle_put
-            handle_put(self)
-            return
-        elif self.path.startswith("/payments/"):
-            from handlers.payments import do_PUT as handle_put
-            handle_put(self)
+        try:
+            if self.path.startswith("/parking-lots/"):
+                from handlers.parkingLots import do_PUT as parking_put
+                parking_put(self)
+                return
+            elif self.path == "/profile":
+                from handlers.user import do_PUT as handle_put
+                handle_put(self)
+                return
+            elif self.path.startswith("/reservations/"):
+                from handlers.reservations import do_PUT as handle_put
+                handle_put(self)
+                return
+            elif self.path.startswith("/vehicles/"):
+                from handlers.vehicles import do_PUT as handle_put
+                handle_put(self)
+                return
+            elif self.path.startswith("/payments/"):
+                from handlers.payments import do_PUT as handle_put
+                handle_put(self)
+                return
+        except Exception as e:
+            self.handle_error(e)
+            self.send_response(500)
+            self.end_headers()
             return
 
         self.send_response(404)
@@ -94,17 +114,23 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b'{"error":"Route not found"}')
 
     def do_DELETE(self):
-        if self.path.startswith("/parking-lots/"):
-            from handlers.parkingLots import do_DELETE as parking_delete
-            parking_delete(self)
-            return
-        elif self.path.startswith("/reservations/"):
-            from handlers.reservations import do_DELETE as handle_delete
-            handle_delete(self)
-            return
-        elif self.path.startswith("/vehicles/"):
-            from handlers.vehicles import do_DELETE as handle_delete
-            handle_delete(self)
+        try:
+            if self.path.startswith("/parking-lots/"):
+                from handlers.parkingLots import do_DELETE as parking_delete
+                parking_delete(self)
+                return
+            elif self.path.startswith("/reservations/"):
+                from handlers.reservations import do_DELETE as handle_delete
+                handle_delete(self)
+                return
+            elif self.path.startswith("/vehicles/"):
+                from handlers.vehicles import do_DELETE as handle_delete
+                handle_delete(self)
+                return
+        except Exception as e:
+            self.handle_error(e)
+            self.send_response(500)
+            self.end_headers()
             return
 
         self.send_response(404)
@@ -113,48 +139,54 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b'{"error":"Route not found"}')
 
     def do_GET(self):
-        if self.path == "/health":
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b'{"status":"ok"}')
-            return
+        try:
+            if self.path == "/health":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status":"ok"}')
+                return
 
-        if self.path == "/profile":
-            from handlers.user import do_GET as handle_get
-            handle_get(self)
-            return
-        elif self.path == "/logout":
-            from handlers.user import do_GET as handle_get
-            handle_get(self)
-            return
-        elif self.path == "/parking-lots" or self.path.startswith("/parking-lots/"):
-            from handlers.parkingLots import do_GET as parking_get
-            parking_get(self)
-            return
-        elif self.path.startswith("/reservations/"):
-            from handlers.reservations import do_GET as handle_get
-            handle_get(self)
-            return
-        elif self.path.startswith("/payments"):
-            from handlers.payments import do_GET as handle_get
-            handle_get(self)
-            return
-        elif self.path.startswith("/billing/"):
-            from handlers.payments import do_GET as handle_get1
-            handle_get1(self)
-            return
-        elif self.path == "/billing":
-            from handlers.payments import do_GET as handle_get
-            handle_get(self)
-            return
-        elif self.path.startswith("/vehicles"):
-            from handlers.vehicles import do_GET as handle_get
-            handle_get(self)
-            return
-        elif self.path.startswith("/history"):
-            from handlers.history import do_GET as handle_get
-            handle_get(self)
+            if self.path == "/profile":
+                from handlers.user import do_GET as handle_get
+                handle_get(self)
+                return
+            elif self.path == "/logout":
+                from handlers.user import do_GET as handle_get
+                handle_get(self)
+                return
+            elif self.path == "/parking-lots" or self.path.startswith("/parking-lots/"):
+                from handlers.parkingLots import do_GET as parking_get
+                parking_get(self)
+                return
+            elif self.path.startswith("/reservations/"):
+                from handlers.reservations import do_GET as handle_get
+                handle_get(self)
+                return
+            elif self.path.startswith("/payments"):
+                from handlers.payments import do_GET as handle_get
+                handle_get(self)
+                return
+            elif self.path.startswith("/billing/"):
+                from handlers.payments import do_GET as handle_get1
+                handle_get1(self)
+                return
+            elif self.path == "/billing":
+                from handlers.payments import do_GET as handle_get
+                handle_get(self)
+                return
+            elif self.path.startswith("/vehicles"):
+                from handlers.vehicles import do_GET as handle_get
+                handle_get(self)
+                return
+            elif self.path.startswith("/history"):
+                from handlers.history import do_GET as handle_get
+                handle_get(self)
+                return
+        except Exception as e:
+            self.handle_error(e)
+            self.send_response(500)
+            self.end_headers()
             return
 
         self.send_response(404)
@@ -171,10 +203,10 @@ if __name__ == "__main__":
     url = f"http://{ip}:{server.server_port}"
 
     print(f"Server running on {url}")
-    Logger.log(f"Server has started on `{url}` [(open)]({url})")
+    # Logger.log(f"Server has started on `{url}` [(open)]({url})")
 
     try:
         server.serve_forever()
     except Exception as exception:
-        print(f"An error occurred:\n{exception}")
-        Logger.error(exception)
+        print(f"An error occurred while running the server:", exception)
+        Logger.error("An error occurred while running the server:", exception)
