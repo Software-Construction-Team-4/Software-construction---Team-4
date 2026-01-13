@@ -35,6 +35,7 @@ def run():
 
     with open("/var/log/cron.log", "a") as f:
         f.write(f"[{datetime.now()}] 12-hour task ran\n")
+        Logger.log("Ran 12-hour task.")
 
 if __name__ == "__main__":
     run()
