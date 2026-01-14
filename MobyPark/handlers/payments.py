@@ -4,8 +4,9 @@ from datetime import datetime
 from session_manager import get_session
 import session_calculator as sc
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
-from DataAccesLayer.db_utils_parkingLots import load_parking_lot_by_id
-from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID, get_parking_session_for_payment, update_payment_status, update_payment_status_for_refund
+from LogicLayer.lotsLogic import load_parking_lot_by_id
+# from DataAccesLayer.db_utils_parkingLots import load_parking_lot_by_id
+from LogicLayer.sessionLogic import load_sessions_for_user, get_unpaid_session, get_unpaid_session, refund_session
 from LogicLayer.paymentsLogic import create_issuer_code
 
 def do_POST(self):
@@ -38,7 +39,7 @@ def do_POST(self):
             
             payments_instance = PaymentsDataAccess()
             payment = payments_instance.get_by_id(data.get("id"))
-            update_payment_status_for_refund(payment.session_id)
+            refund_session(payment.session_id)
 
             self.send_response(201)
             self.send_header("Content-type", "application/json")
@@ -55,7 +56,7 @@ def do_POST(self):
                     self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
                     return
 
-            parking_session = get_parking_session_for_payment(session_user.get("user_id"))
+            parking_session = get_unpaid_session(session_user.get("user_id"))
 
             if parking_session == None:
                 self.send_response(402)
@@ -84,7 +85,7 @@ def do_POST(self):
 
         data_access = PaymentsDataAccess()
         payment_id = data_access.insert_payment(payment)
-        update_payment_status(session_user.get("user_id"))
+        get_unpaid_session(session_user.get("user_id"))
         self.send_response(201)
         self.send_header("Content-type", "application/json")
         self.end_headers()
@@ -236,7 +237,7 @@ def do_GET(self):
         data = []
         session_user = get_session(token)
         user = session_user.get("user_id")
-        sessions = load_sessions_by_userID(user)
+        sessions = load_sessions_for_user(user)
 
         for sess in sessions:
             parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
@@ -300,7 +301,7 @@ def do_GET(self):
 
         user = self.path.replace("/billing/", "")
         data = []
-        sessions = load_sessions_by_userID(user)
+        sessions = load_sessions_for_user(user)
 
         for sess in sessions:
             parkinglot_model = load_parking_lot_by_id(sess.parking_lot_id)
