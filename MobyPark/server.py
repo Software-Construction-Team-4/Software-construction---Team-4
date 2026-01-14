@@ -70,7 +70,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 handle_post(self)
                 return
         except Exception as e:
-            self.handle_error(e)
+            self.handle_error()
             self.send_response(500)
             self.end_headers()
             return
@@ -103,7 +103,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 handle_put(self)
                 return
         except Exception as e:
-            self.handle_error(e)
+            self.handle_error()
             self.send_response(500)
             self.end_headers()
             return
@@ -128,7 +128,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 handle_delete(self)
                 return
         except Exception as e:
-            self.handle_error(e)
+            self.handle_error()
             self.send_response(500)
             self.end_headers()
             return
@@ -184,7 +184,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 handle_get(self)
                 return
         except Exception as e:
-            self.handle_error(e)
+            self.handle_error()
             self.send_response(500)
             self.end_headers()
             return
