@@ -1,14 +1,15 @@
 import requests
 import uuid
 import random
+import pytest
 from DataAccesLayer.db_utils_parkingLots import save_parking_lot, delete_parking_lot
-
 import os
+
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 def get_session_token(user_data):
-    response = requests.post(f"{BASE_URL}/login", json=user_data)
-    return response.json()
+    resp = requests.post(f"{BASE_URL}/login", json=user_data)
+    return resp.json()
 
 def create_dummy_admin_user():
     username = uuid.uuid4().hex[:8]
@@ -39,8 +40,8 @@ def create_dummy_admin_user():
     conn.close()
 
     session_data = get_session_token(dummy_user)
-    user_id = session_data["user_id"]
     token = session_data["session_token"]
+    user_id = session_data["user_id"]
     headers = {"Authorization": token}
     return headers, user_id
 
@@ -63,14 +64,9 @@ def test_create_parking_lot_happy_path():
     headers, user_id = create_dummy_admin_user()
     lot_data = create_dummy_parking_lot_data()
 
-    response = requests.post(
-        f"{BASE_URL}/parking-lots",
-        json=lot_data,
-        headers=headers
-    )
-
-    assert response.status_code == 201
-    lot_id = response.json()["id"]
+    resp = requests.post(f"{BASE_URL}/parking-lots", json=lot_data, headers=headers)
+    assert resp.status_code == 201
+    lot_id = resp.json()["id"]
 
     delete_parking_lot(lot_id)
 
@@ -80,13 +76,9 @@ def test_update_parking_lot_happy_path():
     lot_id = save_parking_lot(lot_data)
 
     updated_data = {"capacity": lot_data["capacity"] + 10, "status": "closed"}
-    response = requests.put(
-        f"{BASE_URL}/parking-lots/{lot_id}",
-        json=updated_data,
-        headers=headers
-    )
+    resp = requests.put(f"{BASE_URL}/parking-lots/{lot_id}", json=updated_data, headers=headers)
+    assert resp.status_code == 200
 
-    assert response.status_code == 200
     delete_parking_lot(lot_id)
 
 def test_delete_parking_lot_happy_path():
@@ -94,42 +86,32 @@ def test_delete_parking_lot_happy_path():
     lot_data = create_dummy_parking_lot_data()
     lot_id = save_parking_lot(lot_data)
 
-    response = requests.delete(
-        f"{BASE_URL}/parking-lots/{lot_id}",
-        headers=headers
-    )
-
-    assert response.status_code == 200
+    resp = requests.delete(f"{BASE_URL}/parking-lots/{lot_id}", headers=headers)
+    assert resp.status_code == 200
 
 def test_create_parking_lot_unauthorized_sad_path():
     lot_data = create_dummy_parking_lot_data()
-    response = requests.post(
-        f"{BASE_URL}/parking-lots",
-        json=lot_data
-    )
-    assert response.status_code == 401
-    assert "Unauthorized" in response.text
+    resp = requests.post(f"{BASE_URL}/parking-lots", json=lot_data)
+    assert resp.status_code == 401
+    assert "Unauthorized" in resp.text
 
 def test_update_parking_lot_unauthorized_sad_path():
     lot_data = create_dummy_parking_lot_data()
     lot_id = save_parking_lot(lot_data)
     updated_data = {"capacity": 100}
 
-    response = requests.put(
-        f"{BASE_URL}/parking-lots/{lot_id}",
-        json=updated_data
-    )
-    assert response.status_code == 401
-    assert "Unauthorized" in response.text
+    resp = requests.put(f"{BASE_URL}/parking-lots/{lot_id}", json=updated_data)
+    assert resp.status_code == 401
+    assert "Unauthorized" in resp.text
+
     delete_parking_lot(lot_id)
 
 def test_delete_parking_lot_unauthorized_sad_path():
     lot_data = create_dummy_parking_lot_data()
     lot_id = save_parking_lot(lot_data)
 
-    response = requests.delete(f"{BASE_URL}/parking-lots/{lot_id}")
-    assert response.status_code == 401
-    assert "Unauthorized" in response.text
-    delete_parking_lot(lot_id)
+    resp = requests.delete(f"{BASE_URL}/parking-lots/{lot_id}")
+    assert resp.status_code == 401
+    assert "Unauthorized" in resp.text
 
-    # dwd
+    delete_parking_lot(lot_id)
