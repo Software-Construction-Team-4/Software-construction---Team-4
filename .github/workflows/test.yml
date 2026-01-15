@@ -1,0 +1,17 @@
+name: Test Mobypark
+
+on:
+  push:
+    branches: ["**"]
+  pull request:
+
+jobs:
+  test:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests in Docker
+        run: |
+          docker build -t myapp:test ./MobyPark
+          docker run --rm myapp:test
+
