@@ -162,3 +162,14 @@ def mark_session_as_refunded(connection, session_id):
         "UPDATE parking_sessions SET payment_status=%s WHERE id=%s",
         ("refunded", session_id)
     )
+
+def delete_parking_session_by_id(connection, session_id):
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            "DELETE FROM parking_sessions WHERE id = %s",
+            (session_id,)
+        )
+        connection.commit()
+    finally:
+        connection.close()
