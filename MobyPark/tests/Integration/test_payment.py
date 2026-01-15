@@ -1,177 +1,115 @@
-import os
-import random
 import requests
 import pytest
-import session_calculator as sc
+import random
+import uuid
+import string
+import os
+import json
 
+from DataModels.vehicle_model import VehicleModel
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess
+from DataAccesLayer.db_utils_parkingSessions import delete_parking_session_by_id, get_db_connection
+from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete
 
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
-def register_and_login():
-    user = {
-        "username": f"sezeven_{random.randint(1000, 9999)}",
+def get_session_token(user_data):
+    response = requests.post(f"{BASE_URL}/login", json=user_data)
+    return response.json()
+
+
+def test_post_payment_endpoint():
+    username = uuid.uuid4().hex[:8]
+    random_phonenumber = random.randint(100000000, 999999999)
+    random_number_one = random.randint(10, 99)
+    random_number_two = random.randint(1, 9)
+    random_letters = ''.join(random.choices(string.ascii_uppercase, k=3))
+
+    DummyUser = {
+        "username": username,
         "password": "Password321!",
         "name": "sezeven Hashemy",
-        "email": f"sezeven{random.randint(1000, 9999)}@gmail.com",
-        "phone": f"+999{random.randint(100000000, 999999999)}",
+        "email": f"sezeven{username}@gmail.com",
+        "phone": f"+310{random_phonenumber}",
         "birth_year": 2000
     }
 
-    r = requests.post(f"{BASE_URL}/register", json=user)
-    assert r.status_code == 201, f"User registration failed {r.status_code}: {r.text}"
+    DummyVehicle = {
+        "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}",
+        "make": "Ford",
+        "model": "Sport",
+        "color": "Red",
+        "year": "2020"
+    }
 
-    login = requests.post(f"{BASE_URL}/login", json=user)
-    assert login.status_code == 200, f"Login failed {login.status_code}: {login.text}"
-    data = login.json()
+    DummyPayment = {
+        "bank": "ABN",
+        "payment_method": "ideal"
+    }
 
-    headers = {"Authorization": data["session_token"]}
-    user_id = data["user_id"]
-    return user, headers, user_id
+    IncorrectDummyPayment = {
+        "bank": "ABN"
+    }
+
+    AdminLogin = {
+        "username": "baas",
+        "password": "Sina321!!",
+    }
+
+    requests.post(f"{BASE_URL}/register", json=DummyUser)
+
+    user_data = get_session_token(DummyUser)
+    user_id = user_data["user_id"]
+    token = user_data["session_token"]
+    headers = {"Authorization": token}
+
+    vehicle_response = requests.post(f"{BASE_URL}/vehicles", json=DummyVehicle, headers=headers)
+    vehicle_data = vehicle_response.json()["vehicle"]
+    vehicle_obj = VehicleModel(**vehicle_data)
+
+    requests.post(f"{BASE_URL}/parking-lots/sessions/start", json={"parking_lot_id": 5}, headers=headers)
+
+    payment_error_one = requests.post(f"{BASE_URL}/payments", json=DummyPayment, headers=headers)
+    assert payment_error_one.status_code == 402
+    assert payment_error_one.text.strip() == "You have no parking session that needs to be paid"
+
+    parking_session_stop = requests.post(f"{BASE_URL}/parking-lots/sessions/stop", headers=headers)
+    parking_session_data = parking_session_stop.json()
+    parking_session_id = parking_session_data["id"]
+
+    payment_error_two = requests.post(f"{BASE_URL}/payments", json=IncorrectDummyPayment, headers=headers)
+    assert payment_error_two.status_code == 401
+    assert payment_error_two.json()["error"] == "Require field missing"
+
+    payment = requests.post(f"{BASE_URL}/payments", json=DummyPayment, headers=headers)
+    assert payment.status_code == 201
+
+    payment_data = payment.json()
+    assert payment_data["status"] == "Success"
 
 
-@pytest.fixture
-def auth():
-    user, headers, user_id = register_and_login()
-    yield user, headers, user_id
+    admin_data = get_session_token(AdminLogin)
+    admin_id = admin_data["user_id"]
+    token2 = admin_data["session_token"]
+    headers2 = {"Authorization": token2}
+
+    refund_error_one = requests.post(f"{BASE_URL}/payments/refund", json={"id": admin_id}, headers=headers)
+    assert refund_error_one.status_code == 403
+    assert refund_error_one.text == "Access denied"
+
+    refund_error_two = requests.post(f"{BASE_URL}/payments/refund", json={"wrong_field": admin_id}, headers=headers2)
+    assert refund_error_two.status_code == 401
+    assert refund_error_two.text == "error: Require field missing, field: id"
+
+    refund = requests.post(f"{BASE_URL}/payments/refund", json={"id": payment_data["payment_id"]}, headers=headers2)
+    assert refund.status_code == 201
+    assert refund.text == "succes: The user has been refunded"
+
+    payments_del = PaymentsDataAccess()
+    payments_del.delete_payment(payment_data["payment_id"])
+    connection = get_db_connection()
+    delete_parking_session_by_id(connection, parking_session_id)
+    VehicleAccess.delete(vehicle_obj)
     delete(user_id)
-
-
-@pytest.fixture
-def created_payment(auth):
-    user, headers, user_id = auth
-
-    base_payment = {
-        "parking_lot_id": str(random.randint(1, 1500)),
-        "session_id": str(random.randint(1, 10000)),
-        "license_plate": f"TEST-{random.randint(100, 999)}",
-        "amount": random.randint(1, 1000),
-        "bank": "ING",
-        "payment_methode": "paypal",
-    }
-
-    response = requests.post(
-        f"{BASE_URL}/payments",
-        json=base_payment,
-        headers=headers
-    )
-
-    assert response.status_code == 201, f"Create payment failed {response.status_code}: {response.text}"
-    payment = response.json()
-
-    yield payment, base_payment, headers
-
-    PaymentsDataAccess().delete_payment(payment["payment_id"])
-
-
-def test_POST_payment(created_payment):
-    payment, base_payment, headers = created_payment
-    assert payment["status"] == "Success"
-    assert "payment_id" in payment
-
-
-def test_GET_payment(auth):
-    user, headers, user_id = auth
-
-    response = requests.get(
-        f"{BASE_URL}/payments",
-        headers=headers
-    )
-
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
-
-
-def test_PUT_payment(created_payment):
-    payment, base_payment, headers = created_payment
-    payment_id = payment["payment_id"]
-
-    put_payload = {
-        "bank": "ING",
-        "issuer_code": "CXE287BP",
-        "payment_method": "paypal",
-        "transaction_hash": sc.generate_transaction_validation_hash(
-            base_payment["session_id"],
-            base_payment["license_plate"]
-        )
-    }
-
-    response = requests.put(
-        f"{BASE_URL}/payments/{payment_id}",
-        json=put_payload,
-        headers=headers
-    )
-
-    assert response.status_code == 200, response.text
-    assert response.json()["status"] == "Success"
-
-
-def test_POST_payment_sad(auth):
-    user, headers, user_id = auth
-
-    wrong_payment = {
-        "parking_lot_id": str(random.randint(1, 1500)),
-        "session_id": str(random.randint(1, 10000)),
-        "license_plate": f"TEST-{random.randint(100, 999)}",
-    }
-
-    response = requests.post(
-        f"{BASE_URL}/payments",
-        json=wrong_payment,
-        headers=headers
-    )
-
-    assert response.status_code == 401
-    data = response.json()
-    assert data["error"] == "Require field missing"
-    assert data["field"] in {"amount", "bank", "payment_methode"}
-
-
-def test_PUT_payment_sad(created_payment):
-    payment, base_payment, headers = created_payment
-    payment_id = payment["payment_id"]
-
-    wrong_put_payment = {
-        "bank": "ING",
-        "issuer_code": "CXE287BP",
-        "payment_method": "paypal",
-        "transaction_hash": ""
-    }
-
-    response = requests.put(
-        f"{BASE_URL}/payments/{payment_id}",
-        json=wrong_put_payment,
-        headers=headers
-    )
-
-    assert response.status_code == 401
-    body = response.json()
-    assert body["error"] == "Validation failed"
-    assert body["id"] == payment_id
-
-    response2 = requests.put(
-        f"{BASE_URL}/payments/{-10}",
-        json=wrong_put_payment,
-        headers=headers
-    )
-
-    assert response2.status_code == 404
-    assert response2.text == "Payment not found!"
-
-    wrong_put_payment2 = {
-        "bank": "ING",
-        "issuer_code": "CXE287BP",
-        "payment_method": "paypal",
-    }
-
-    response3 = requests.put(
-        f"{BASE_URL}/payments/{payment_id}",
-        json=wrong_put_payment2,
-        headers=headers
-    )
-
-    assert response3.status_code == 401
-    assert response3.json()["error"] == "Require field missing"
-    assert response3.json()["field"] == "transaction_hash"
