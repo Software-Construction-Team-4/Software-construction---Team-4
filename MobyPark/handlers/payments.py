@@ -1,13 +1,11 @@
 import json
 from datetime import datetime
-#from storage_utils import load_json, load_parking_lot_data, load_payment_data, save_payment_data # pyright: ignore[reportUnknownVariableType]
 from session_manager import get_session
 import session_calculator as sc
 from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
 from LogicLayer.lotsLogic import load_parking_lot_by_id
-# from DataAccesLayer.db_utils_parkingLots import load_parking_lot_by_id
 from LogicLayer.sessionLogic import load_sessions_for_user, get_unpaid_session, get_unpaid_session, refund_session
-from LogicLayer.paymentsLogic import create_issuer_code
+from LogicLayer.paymentsLogic import create_issuer_code, get_by_id, insert_payment, update_payment, get_by_initiator
 
 def do_POST(self):
     if self.path.startswith("/payments"):
@@ -37,8 +35,9 @@ def do_POST(self):
                 self.wfile.write("error: Require field missing, field: id".encode("utf-8"))
                 return
             
-            payments_instance = PaymentsDataAccess()
-            payment = payments_instance.get_by_id(data.get("id"))
+            # payments_instance = PaymentsDataAccess()
+            # payment = payments_instance.get_by_id(data.get("id"))
+            payment = get_by_id(data.get("id"))
             refund_session(payment.session_id)
 
             self.send_response(201)
@@ -83,8 +82,9 @@ def do_POST(self):
                 transaction_hash=transaction_hash
             )
 
-        data_access = PaymentsDataAccess()
-        payment_id = data_access.insert_payment(payment)
+        # data_access = PaymentsDataAccess()
+        # payment_id = data_access.insert_payment(payment)
+        payment_id = insert_payment(payment)
         get_unpaid_session(session_user.get("user_id"))
         self.send_response(201)
         self.send_header("Content-type", "application/json")
@@ -110,9 +110,8 @@ def do_PUT(self):
             self.wfile.write(b"Access denied")
             return
         
-        data_access = PaymentsDataAccess()
+        # data_access = PaymentsDataAccess()
         pid = self.path.replace("/payments/", "")
-        # data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -127,7 +126,7 @@ def do_PUT(self):
             self.wfile.write(b'Invalid JSON')
             return
 
-        payment = data_access.get_by_id(pid)
+        payment = get_by_id(pid)
         if payment:
             if "transaction_hash" not in data:
                 self.send_response(401)
@@ -160,7 +159,7 @@ def do_PUT(self):
                 if i in data:
                     setattr(payment, i, data[i])
 
-            data_access.update_payment(payment)
+            update_payment(payment)
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -186,8 +185,8 @@ def do_GET(self):
             return
 
         session_user = get_session(token)
-        data_access = PaymentsDataAccess()
-        payments = data_access.get_by_initiator(session_user["username"])
+        # data_access = PaymentsDataAccess()
+        payments = get_by_initiator(session_user["username"])
 
         paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
@@ -215,8 +214,8 @@ def do_GET(self):
             self.wfile.write(b"Access denied")
             return
 
-        data_access = PaymentsDataAccess()
-        payments = data_access.get_by_initiator(user)
+        # data_access = PaymentsDataAccess()
+        payments = get_by_initiator(user)
 
         paymentsDict = [x.to_dict() for x in payments]
         self.send_response(200)
