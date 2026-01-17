@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from session_manager import get_session
 import session_calculator as sc
-from DataAccesLayer.PaymentsAccess import PaymentsDataAccess, PaymentsModel
+from DataAccesLayer.PaymentsAccess import PaymentsModel
 from LogicLayer.lotsLogic import load_parking_lot_by_id
 from LogicLayer.sessionLogic import load_sessions_for_user, get_unpaid_session, get_unpaid_session, refund_session
 from LogicLayer.paymentsLogic import create_issuer_code, get_by_id, insert_payment, update_payment, get_by_initiator

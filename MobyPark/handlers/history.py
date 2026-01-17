@@ -1,6 +1,6 @@
-
 import json
-from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
+# from DataAccesLayer.db_utils_parkingSessions import load_sessions_by_userID
+from LogicLayer.sessionLogic import load_sessions_for_user
 from session_manager import get_session
 
 def do_GET(self):
@@ -36,7 +36,7 @@ def do_GET(self):
         self.wfile.write(b"Unauthorized: Cannot view other users' history")
         return
 
-    sessions = load_sessions_by_userID(target_user_id)
+    sessions = load_sessions_for_user(target_user_id)
     self.send_response(200)
     self.send_header("Content-Type", "application/json")
     self.end_headers()
