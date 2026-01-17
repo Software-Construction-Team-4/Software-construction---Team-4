@@ -41,7 +41,7 @@ class Logger:
             ]
         }
 
-        requests.post(Logger.DISCORD_WEBHOOK_URL, json=body)
+        # requests.post(Logger.DISCORD_WEBHOOK_URL, json=body)
 
     @staticmethod
     def warn(message: str) -> None:

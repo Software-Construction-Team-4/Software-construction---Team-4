@@ -97,7 +97,7 @@ def do_POST(self):
             send_json(self, 404, {"error": "No active session found"})
             return
 
-        send_json(self, 200, {"success": "Parking session stopped"})
+        send_json(self, 200, {"success": "Parking session stopped", "id": session.id})
         return
 
     send_json(self, 404, {"error": "Invalid route"})
