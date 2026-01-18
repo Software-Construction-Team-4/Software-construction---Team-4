@@ -4,7 +4,8 @@ from DataAccesLayer.db_utils_users import load_users, update_user_data, delete
 import pytest
 import random
 
-BASE_URL = "http://localhost:8000"
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 def create_user(user_data):
     requests.post(f"{BASE_URL}/register", json=user_data)

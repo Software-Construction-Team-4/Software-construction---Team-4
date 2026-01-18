@@ -9,7 +9,9 @@ from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user  # delete user by id
 
 import os
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 def random_license_plate():
     return f"{random.randint(10,99)}-{uuid.uuid4().hex[:3].upper()}-{random.randint(1,9)}"

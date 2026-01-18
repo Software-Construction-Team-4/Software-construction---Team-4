@@ -3,7 +3,8 @@ import pytest
 from DataAccesLayer.db_utils_users import delete
 
 import os
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 def test_logout():
     dummyuser = {

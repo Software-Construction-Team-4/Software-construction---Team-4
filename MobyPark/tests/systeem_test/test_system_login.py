@@ -9,7 +9,8 @@ import random
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user
 
-BASE_URL = "http://127.0.0.1:8001"
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 
 random_user = {

@@ -2,14 +2,15 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 
+from environment import Environment
 def get_db_connection():
     try:
         connection = mysql.connector.connect(
-            host="145.24.237.71",
-            port=8001,
-            user="vscode",
-            password="StrongPassword123!",
-            database="mobypark"
+            host=Environment.get_var("DB_HOST"),
+            port=int(Environment.get_var("DB_PORT")),
+            user=Environment.get_var("DB_USER"),
+            password=Environment.get_var("DB_PASSWORD"),
+            database=Environment.get_var("DB_NAME")
         )
         return connection
     except Error as e:

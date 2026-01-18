@@ -12,7 +12,8 @@ from DataAccesLayer.db_utils_parkingSessions import delete_parking_session_by_id
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete
 
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 
 def get_session_token(user_data):
