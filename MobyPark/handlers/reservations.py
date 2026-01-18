@@ -51,7 +51,7 @@ def do_POST(self):
 
         vehicles = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
         if not vehicles:
-            return send_json(self, 404, {"error": "User has no registered vehicles"})
+            return send_json(self, 404, {"error": "User is not registered to any vehicle"})
 
         new_res = Reservations(
             id=None,

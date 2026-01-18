@@ -54,3 +54,21 @@ def get_reservations_count_today():
 
 def process_missed_sessions(target_date: date):
     create_missed_parking_sessions_for_date(target_date)
+
+def get_reservation_by_user_id(user_id):
+    all_reservations = load_all_reservations()
+    for r in all_reservations:
+        if r["user_id"] == user_id and r["status"] == "pending":
+            return Reservations(
+                id=r["id"],
+                user_id=r["user_id"],
+                parking_lot_id=r["parking_lot_id"],
+                vehicle_id=r["vehicle_id"],
+                start_time=r["start_time"],
+                end_time=r["end_time"],
+                status=r["status"],
+                created_at=r.get("created_at"),
+                cost=r.get("cost"),
+                updated_at=r.get("updated_at")
+            )
+    return None
