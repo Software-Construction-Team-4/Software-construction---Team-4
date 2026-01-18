@@ -1,0 +1,22 @@
+name: Test Mobypark
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build test image
+        run: |
+          docker build -t mobypark:tests --target test ./MobyPark
+
+      - name: Run pytest
+        run: |
+          docker run --rm mobypark:tests
