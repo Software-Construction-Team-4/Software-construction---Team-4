@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim as Base
 
 # Install cron
 RUN apt-get update && apt-get install -y cron
@@ -21,3 +21,7 @@ RUN touch /var/log/cron.log
 
 # Start cron + server
 CMD cron && python -u server.py
+
+# Auto test
+FROM Base AS test
+CMD ["pytest", "tests"]
