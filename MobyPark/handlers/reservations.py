@@ -1,58 +1,63 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from session_manager import get_session
+from LogicLayer.reservationsLogic import get_reservation, create_reservation, update_reservation_logic, delete_reservation_logic, process_missed_sessions
 from DataModels.reservationsModel import Reservations
-from DataAccesLayer.db_utils_reservations import save_reservation_data, update_reservation_data, get_reservation_by_id
-from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_parkingLots import update_parking_lot, parking_lot_exists
+from DataAccesLayer.vehicle_access import VehicleAccess
 
-def update_parking_lot_reserved(lot_id, delta=1):
-    update_parking_lot(lot_id, {"reserved": delta})
+def send_json(self, status_code, data):
+    self.send_response(status_code)
+    self.send_header("Content-Type", "application/json")
+    self.end_headers()
+    self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
+def require_session(self):
+    token = self.headers.get("Authorization")
+    session_user = get_session(token)
+    if not session_user:
+        send_json(self, 401, {"error": "Unauthorized"})
+        return None
+    return session_user
+
+def do_GET(self):
+    if self.path.startswith("/reservations/"):
+        rid = self.path.replace("/reservations/", "")
+        reservation = get_reservation(rid)
+        if not reservation:
+            return send_json(self, 404, {"error": "Reservation not found"})
+
+        session_user = require_session(self)
+        if not session_user: return
+
+        if session_user.get("role") != "ADMIN" and reservation.user_id != session_user.get("user_id"):
+            return send_json(self, 403, {"error": "Access denied"})
+
+        send_json(self, 200, reservation.to_dict())
 
 def do_POST(self):
     if self.path == "/reservations":
-        token = self.headers.get('Authorization')
-        if not token or not get_session(token):
-            self.send_response(401)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Unauthorized: Invalid or missing session token")
-            return
+        session_user = require_session(self)
+        if not session_user: return
 
-        session_user = get_session(token)
-        id_of_user = session_user.get("user_id")
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
 
         for field in ["start_time", "end_time", "parking_lot_id"]:
             if field not in data:
-                self.send_response(400)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Required field missing", "field": field}).encode("utf-8"))
-                return
+                return send_json(self, 400, {"error": f"{field} missing"})
 
-        if not parking_lot_exists(data.get("parking_lot_id")):
-            self.send_response(404)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Parking lot not found", "field": "parking_lot_id"}).encode("utf-8"))
-            return
-        
-        if not VehicleAccess.get_all_user_vehicles(id_of_user):
-            self.send_response(404)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "User is not registered to any vehicle"}).encode("utf-8"))
-            return
+        if not parking_lot_exists(data["parking_lot_id"]):
+            return send_json(self, 404, {"error": "Parking lot not found"})
 
-        user_vehicles = VehicleAccess.get_all_user_vehicles(id_of_user)
+        vehicles = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
+        if not vehicles:
+            return send_json(self, 404, {"error": "User is not registered to any vehicle"})
 
-        new_reservation = Reservations(
+        new_res = Reservations(
             id=None,
-            user_id=id_of_user,
+            user_id=session_user.get("user_id"),
             parking_lot_id=data["parking_lot_id"],
-            vehicle_id=user_vehicles[0].id,
+            vehicle_id=vehicles[0].id,
             start_time=data["start_time"],
             end_time=data["end_time"],
             status="pending",
@@ -60,249 +65,57 @@ def do_POST(self):
             cost=None,
             updated_at=None
         )
-
-        save_reservation_data(new_reservation)
-
-        if new_reservation.status == "confirmed":
-            update_parking_lot_reserved(new_reservation.parking_lot_id, delta=1)
-
-        self.send_response(201)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-        self.wfile.write(
-            json.dumps(
-                {"status": "Success", "reservation": new_reservation.to_dict()},
-                default=str
-            ).encode("utf-8")
-        )
-
+        create_reservation(new_res)
+        send_json(self, 201, {"status": "Success", "reservation": new_res.to_dict()})
 
 def do_PUT(self):
     if self.path.startswith("/reservations/"):
-        data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
         rid = self.path.replace("/reservations/", "")
+        session_user = require_session(self)
+        if not session_user: return
 
-        found_res_dict = get_reservation_by_id(rid)
-        if found_res_dict is None:
-            self.send_response(404)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Reservation not found")
-            return
+        data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+        reservation = get_reservation(rid)
+        if not reservation:
+            return send_json(self, 404, {"error": "Reservation not found"})
 
-        token = self.headers.get('Authorization')
-        session_user = get_session(token)
-        if not token or not session_user:
-            self.send_response(401)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(b"Unauthorized: Invalid or missing session token")
-            return
+        if session_user.get("role") != "ADMIN" and reservation.user_id != session_user.get("user_id"):
+            return send_json(self, 403, {"error": "Access denied"})
 
-        if session_user.get('role') != 'ADMIN' and str(found_res_dict.get("user_id")) != str(session_user.get('user_id')):
-            self.send_response(403)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            message = {
-                "error": "Access denied",
-                "session_role": session_user.get("role"),
-                "session_user_id": session_user.get('user_id'),
-                "reservation_user_id": found_res_dict.get("user_id")
-            }
-            self.wfile.write(json.dumps(message).encode("utf-8"))
-            return
-
-        listOfUnchangeables = ["id", "user_id", "parking_lot_id", "vehicle_id", "created_at"]
-        changeableByAdmin = ["status", "cost"]
-        changeableItems = {"start_time", "end_time", "status", "cost"}
-
-        for element in listOfUnchangeables:
-            for d in data:
-                if element == d:
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(f"error: this item is unchangeable: {element}".encode("utf-8"))
-                    return
-                
-        for element in changeableByAdmin:
-            for d in data:
-                if element == d and session_user.get('role') != 'ADMIN':
-                    self.send_response(401)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(f"error: as an user you are not able to update: {element}".encode("utf-8"))
-                    return
-                
-        for key in changeableItems:
+        for key in ["start_time", "end_time", "status", "cost"]:
             if key in data:
-                found_res_dict[key] = data[key]
-        
-        startTime = found_res_dict["start_time"]
-        endTime = found_res_dict["end_time"]
-        status = found_res_dict["status"]
-        cost = found_res_dict["cost"]
-
-        user_vehicles = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
-
-        updated_reservation = Reservations(
-            id=found_res_dict["id"],
-            user_id=session_user.get("user_id"),
-            parking_lot_id=found_res_dict["parking_lot_id"], 
-            vehicle_id=user_vehicles[0].id,
-            start_time=startTime,
-            end_time=endTime,
-            status=status,
-            created_at=found_res_dict["created_at"],
-            cost=cost,
-            updated_at=datetime.now()
-        )
+                setattr(reservation, key, data[key])
 
         if "status" in data:
-            old_status = found_res_dict.get("status")
+            old_status = reservation.status
             new_status = data["status"]
             if old_status != "confirmed" and new_status == "confirmed":
-                update_parking_lot_reserved(updated_reservation.parking_lot_id, delta=1)
+                update_parking_lot(reservation.parking_lot_id, {"reserved": 1})
             elif old_status == "confirmed" and new_status != "confirmed":
-                update_parking_lot_reserved(updated_reservation.parking_lot_id, delta=-1)
+                update_parking_lot(reservation.parking_lot_id, {"reserved": -1})
 
-        update_reservation_data(updated_reservation)
-
-        self.send_response(200)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({
-            "status": "Updated",
-            "reservation": updated_reservation.to_dict()
-        }, default=str).encode("utf-8"))
-
-
-def do_GET(self):
-    if self.path.startswith("/reservations/"):
-        rid = self.path.replace("/reservations/", "").strip("/")
-
-        if rid:
-            found_res_dict = get_reservation_by_id(rid)
-            if not found_res_dict:
-                self.send_response(404)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Reservation not found")
-                return
-
-            reservation = Reservations(
-                id=str(rid),
-                user_id=found_res_dict["user_id"],
-                parking_lot_id=found_res_dict["parking_lot_id"],
-                vehicle_id=found_res_dict["vehicle_id"],
-                start_time=found_res_dict["start_time"],
-                end_time=found_res_dict["end_time"],
-                status=found_res_dict["status"],
-                created_at=found_res_dict["created_at"],
-                cost=found_res_dict["cost"],
-                updated_at=found_res_dict.get("updated_at")
-            )
-
-            token = self.headers.get('Authorization')
-            session_user = get_session(token)
-            if not token or not session_user:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
-
-            if session_user.get("role") != "ADMIN" and str(session_user.get('user_id')) != str(reservation.user_id):
-                self.send_response(403)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                message = {
-                    "error": "Access denied",
-                    "session_role": session_user.get("role"),
-                    "session_user_id": session_user.get('user_id'),
-                    "reservation_user_id": reservation.user_id
-                }
-                self.wfile.write(json.dumps(message).encode("utf-8"))
-                return
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(reservation.to_dict(), default=str).encode("utf-8"))
-            return
-
+        update_reservation_logic(reservation)
+        send_json(self, 200, {"status": "Updated", "reservation": reservation.to_dict()})
 
 def do_DELETE(self):
     if self.path.startswith("/reservations/"):
-        rid = self.path.replace("/reservations/", "").strip("/")
+        rid = self.path.replace("/reservations/", "")
+        session_user = require_session(self)
+        if not session_user: return
 
-        if rid:
-            found_res_dict = get_reservation_by_id(rid)
-            if not found_res_dict:
-                self.send_response(404)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Reservation not found")
-                return
+        reservation = get_reservation(rid)
+        if not reservation:
+            return send_json(self, 404, {"error": "Reservation not found"})
 
-            reservation = Reservations(
-                id=found_res_dict["id"],
-                user_id=found_res_dict["user_id"],
-                parking_lot_id=found_res_dict["parking_lot_id"],
-                vehicle_id=found_res_dict["vehicle_id"],
-                start_time=found_res_dict["start_time"],
-                end_time=found_res_dict["end_time"],
-                status=found_res_dict["status"],
-                created_at=found_res_dict["created_at"],
-                cost=found_res_dict["cost"],
-                updated_at=found_res_dict.get("updated_at")
-            )
+        if session_user.get("role") != "ADMIN" and reservation.user_id != session_user.get("user_id"):
+            return send_json(self, 403, {"error": "Access denied"})
 
-            token = self.headers.get('Authorization')
-            session_user = get_session(token)
-            if not token or not session_user:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                return
+        if (reservation.start_time - datetime.now()).total_seconds() < 86400:
+            return send_json(self, 403, {"error": "Cannot cancel <24h before start"})
 
-            if session_user.get("role") != "ADMIN" and str(session_user.get("user_id")) != str(reservation.user_id):
-                self.send_response(403)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                message = {
-                    "error": "Access denied",
-                    "session_role": session_user.get("role"),
-                    "session_user_id": session_user.get('user_id'),
-                    "reservation_user_id": reservation.user_id
-                }
-                self.wfile.write(json.dumps(message).encode("utf-8"))
-                return
+        if reservation.status == "confirmed":
+            update_parking_lot(reservation.parking_lot_id, {"reserved": -1})
 
-            now = datetime.now()
-            difference = reservation.start_time - now
-            hours_left = difference.total_seconds() / 3600
-            
-            if hours_left < 24:
-                self.send_response(403)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                message = {
-                    "error": "Can't cancel less than 24 hours before the start time of the reservation"
-                }
-                self.wfile.write(json.dumps(message).encode("utf-8"))
-                return
-
-            pid = reservation.parking_lot_id
-            if reservation.status == "confirmed" and parking_lot_exists(pid):
-                update_parking_lot_reserved(pid, delta=-1)
-
-            reservation.status = "canceled"
-            update_reservation_data(reservation)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "Canceled"}).encode("utf-8"))
-            return
+        reservation.status = "canceled"
+        update_reservation_logic(reservation)
+        send_json(self, 200, {"status": "Canceled"})
