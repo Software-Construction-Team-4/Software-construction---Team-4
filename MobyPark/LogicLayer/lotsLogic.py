@@ -1,10 +1,11 @@
 from DataAccesLayer.db_utils_parkingLots import load_all_parking_lots_from_db, load_parking_lot_row_by_id, update_parking_lot, create_parking_lot_from_row, load_active_session_count
-from DataAccesLayer.db_utils_reservations import create_missed_parking_sessions, get_today_reservations_count_by_lot
+from LogicLayer.reservationsLogic import process_missed_sessions, get_reservations_count_today
+from datetime import date
 
 def load_parking_lots():
-    create_missed_parking_sessions()
+    process_missed_sessions(date.today())
     rows = load_all_parking_lots_from_db()
-    today_reservations = get_today_reservations_count_by_lot()
+    today_reservations = get_reservations_count_today()
 
     parking_lots = {}
 
@@ -28,12 +29,12 @@ def load_parking_lots():
     return parking_lots
 
 def load_parking_lot_by_id(lot_id):
-    create_missed_parking_sessions()
+    process_missed_sessions(date.today())
     row = load_parking_lot_row_by_id(lot_id)
     if not row:
         return None
 
-    today_reservations = get_today_reservations_count_by_lot()
+    today_reservations = get_reservations_count_today()
     reserved_amount = today_reservations.get(str(lot_id), 0)
     active_amount = load_active_session_count(lot_id)
 

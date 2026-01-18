@@ -1,7 +1,7 @@
 import json
 from LogicLayer.sessionLogic import start_parking_session, stop_parking_session, load_sessions_for_user
 from session_manager import get_session
-from DataAccesLayer.db_utils_reservations import get_reservation_by_user_id, update_status_only
+from LogicLayer.reservationsLogic import get_reservation_by_user_id, update_reservation_logic
 from DataAccesLayer.vehicle_access import VehicleAccess
 
 
@@ -80,7 +80,8 @@ def do_POST(self):
             return
 
         if reservation:
-            update_status_only(reservation["id"])
+            reservation.status = "confirmed"
+            update_reservation_logic(reservation)
 
         send_json(self, 201, {"message": "Your session has started"})
         return
