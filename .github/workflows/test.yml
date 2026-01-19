@@ -17,19 +17,24 @@ jobs:
         run: |
           docker build -t mobypark:tests --target test ./MobyPark
 
-      - name: Run API and tests in the same container
+      - name: Run Integration tests (port 8000)
         run: |
-          # Run container in interactive mode
+          docker run --rm \
+            -e BASE_URL=http://127.0.0.1:8000 \
+            mobypark:tests \
+            sh -c "
+              python -u server.py --port 8000 & 
+              sleep 5
+              pytest tests/Integration
+            "
+
+      - name: Run Systeem tests (port 8001)
+        run: |
           docker run --rm \
             -e BASE_URL=http://127.0.0.1:8001 \
             mobypark:tests \
             sh -c "
-              # Start the API in the background
-              python -u server.py &
-
-              # Wait a few seconds for it to start
+              python -u server.py --port 8001 & 
               sleep 5
-
-              # Run pytest
-              pytest tests
+              pytest tests/systeem_test
             "
