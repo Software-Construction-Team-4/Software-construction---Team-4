@@ -174,15 +174,23 @@ def delete_parking_session_by_id(connection, session_id):
     finally:
         connection.close()
 
+
 def create_parking_sessions_from_expired_reservations(reservations):
     conn = get_db_connection()
     try:
+        cursor = conn.cursor(dictionary=True)
+
         for reservation in reservations:
             parking_lot_id = reservation["parking_lot_id"]
             user_id = reservation["user_id"]
-            licenseplate = reservation["licenseplate"]
+            vehicle_id = reservation["vehicle_id"]
             start_time = reservation["start_time"]
             end_time = reservation["end_time"]
+
+            cursor.execute("SELECT license_plate FROM vehicles WHERE id = %s LIMIT 1",(vehicle_id,))
+            result = cursor.fetchone()
+
+            licenseplate = result["license_plate"]
 
             lot = get_parking_lot(conn, parking_lot_id)
 
@@ -201,10 +209,11 @@ def create_parking_sessions_from_expired_reservations(reservations):
             }
 
             insert_parking_session(conn, session_data)
-
             increase_active_sessions(conn, parking_lot_id)
 
         conn.commit()
 
     finally:
+        cursor.close()
         conn.close()
+
