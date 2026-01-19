@@ -191,4 +191,3 @@ def pending_to_expired():
     finally:
         cursor.close()
         conn.close()
-
