@@ -4,14 +4,14 @@ import mysql.connector
 
 from DataModels.vehicle_model import VehicleModel
 
-# TODO place this in a gitignored .env file
+from environment import Environment
 db = mysql.connector.connect(
-    host="145.24.237.71",
-    port=8001,
-    user="vscode",
-    password="StrongPassword123!",
-    database="mobypark"
-)
+        host=Environment.get_var("DB_HOST"),
+        port=int(Environment.get_var("DB_PORT")),
+        user=Environment.get_var("DB_USER"),
+        password=Environment.get_var("DB_PASSWORD"),
+        database=Environment.get_var("DB_NAME")
+    )
 
 # db = mysql.connector.connect(
 #         host="localhost",
@@ -126,7 +126,7 @@ class VehicleAccess:
                 updated_at=row[8]
             )
         return None
-    
+
     @staticmethod
     def license_plate_exists(license_plate: str) -> bool:
         cursor.execute(

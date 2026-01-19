@@ -4,7 +4,8 @@ from DataAccesLayer.db_utils_users import delete
 import random
 
 import os
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 def test_register_endpoint():
     DummyUser = {
@@ -16,7 +17,7 @@ def test_register_endpoint():
         "birth_year": 2000
     }
 
-        
+
     FirstResult = requests.post(f"{BASE_URL}/register", json = DummyUser)
 
     assert FirstResult.status_code == 201

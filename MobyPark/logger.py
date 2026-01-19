@@ -3,6 +3,7 @@ import os
 from typing import Union
 import requests # should probably use aiohttp
 import datetime
+from environment import Environment
 
 
 class Logger:
@@ -11,15 +12,15 @@ class Logger:
         WARN = "warn"
         ERROR = "error"
 
-
-    DISCORD_WEBHOOK_URL =  os.getenv("DISCORD_WEBHOOK_URL")
-
-    FORMAT_TIMESTAMP = "<t:{timestamp}:R>"
-    FORMAT_ERROR = "```py\n{exception}\n```"
+    FORMAT_TIMESTAMP: str = "<t:{timestamp}:R>"
+    FORMAT_ERROR: str = "```py\n{exception}\n```"
 
 
     @staticmethod
     def log(message: str, level: Level = Level.INFO, mention: bool = False, colour: int = 0x252525) -> None:
+        if (Environment.get_var("discord_webhook_url") is None): # webhook isn't configured
+            return
+
         timestamp: int = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
         body = {
             "content": "@everyone" if mention else None,
@@ -41,7 +42,7 @@ class Logger:
             ]
         }
 
-        # requests.post(Logger.DISCORD_WEBHOOK_URL, json=body)
+        requests.post(Environment.get_var("discord_webhook_url"), json=body)
 
     @staticmethod
     def warn(message: str) -> None:

@@ -5,7 +5,8 @@ import pytest
 from DataAccesLayer.db_utils_parkingLots import save_parking_lot, delete_parking_lot
 import os
 
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 def get_session_token(user_data):
     resp = requests.post(f"{BASE_URL}/login", json=user_data)
@@ -27,11 +28,11 @@ def create_dummy_admin_user():
 
     import mysql.connector
     conn = mysql.connector.connect(
-        host="145.24.237.71",
-        port=8001,
-        user="vscode",
-        password="StrongPassword123!",
-        database="mobypark"
+        host=Environment.get_var("DB_HOST"),
+        port=int(Environment.get_var("DB_PORT")),
+        user=Environment.get_var("DB_USER"),
+        password=Environment.get_var("DB_PASSWORD"),
+        database=Environment.get_var("DB_NAME")
     )
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET role='ADMIN' WHERE username=%s", (username,))

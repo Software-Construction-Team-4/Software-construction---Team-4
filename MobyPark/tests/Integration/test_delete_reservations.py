@@ -10,7 +10,8 @@ from DataModels.vehicle_model import VehicleModel
 from DataAccesLayer.db_utils_users import delete
 
 import os
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 
 def get_session_token(user_data):
@@ -34,23 +35,23 @@ def test_delete_reservations_endpoint():
     }
 
     DummyVehicleOne = {
-        "license_plate": f"{random_number_one - 1}-{random_letters}-{random_number_two + 1}", 
-        "make": "Ford", 
-        "model": "Sport", 
-        "color": "Red", 
+        "license_plate": f"{random_number_one - 1}-{random_letters}-{random_number_two + 1}",
+        "make": "Ford",
+        "model": "Sport",
+        "color": "Red",
         "year": "2020"
     }
 
     DummyVehicleTwo = {
-        "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}", 
-        "make": "Ford", 
-        "model": "Sport", 
-        "color": "Red", 
+        "license_plate": f"{random_number_one}-{random_letters}-{random_number_two}",
+        "make": "Ford",
+        "model": "Sport",
+        "color": "Red",
         "year": "2020"
     }
 
     DummyReservationOne = {
-        "parking_lot_id": "1", 
+        "parking_lot_id": "1",
         "start_time": "2026-12-22 18:00:00",
         "end_time": "2026-12-22 19:00:00",
         "cost": 14,

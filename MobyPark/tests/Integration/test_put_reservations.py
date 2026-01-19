@@ -7,7 +7,8 @@ from DataAccesLayer.db_utils_users import delete as delete_user
 from DataModels.vehicle_model import VehicleModel
 
 import os
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+from environment import Environment
+BASE_URL = Environment.get_var("BASE_URL", "http://localhost:8000")
 
 
 def build_random_user():

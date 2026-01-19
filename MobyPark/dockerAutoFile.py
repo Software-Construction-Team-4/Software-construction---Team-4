@@ -2,13 +2,14 @@ import mysql.connector
 from datetime import datetime
 from DataAccesLayer.db_utils_reservations import create_missed_parking_sessions
 
+from environment import Environment
 def get_db_connection():
     return mysql.connector.connect(
-        host="145.24.237.71",
-        port=8001,
-        user="vscode",
-        password="StrongPassword123!",
-        database="mobypark"
+        host=Environment.get_var("DB_HOST"),
+        port=int(Environment.get_var("DB_PORT")),
+        user=Environment.get_var("DB_USER"),
+        password=Environment.get_var("DB_PASSWORD"),
+        database=Environment.get_var("DB_NAME")
     )
 
 def pending_to_expired():
