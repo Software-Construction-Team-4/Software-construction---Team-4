@@ -30,11 +30,13 @@ jobs:
 
       - name: Run Systeem tests (port 8001)
         run: |
-          docker run --rm \
-            -e BASE_URL=http://127.0.0.1:8001 \
-            mobypark:tests \
-            sh -c "
-              python -u server.py --port 8001 & 
-              sleep 5
-              pytest tests/systeem_test
-            "
+          docker run --rm -e BASE_URL=http://127.0.0.1:8001 mobypark:tests sh -c "
+            # Start API in background
+            python -u server.py --port 8001 &
+
+            # Wait for server to accept connections
+            while ! nc -z 127.0.0.1 8001; do sleep 1; done
+
+            # Run tests
+            pytest tests/systeem_test
+          "
