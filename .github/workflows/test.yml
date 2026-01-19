@@ -13,29 +13,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build API image
-        run: |
-          docker build -t mobypark:api ./MobyPark
-
-      - name: Start API container
-        run: |
-          docker run -d --name mobypark-api -p 8010:8010 mobypark:api
-
-      - name: Wait for API to be ready
-        run: |
-          sleep 10
-
       - name: Build test image
         run: |
           docker build -t mobypark:tests --target test ./MobyPark
 
-      - name: Run pytest
+      - name: Run API and tests in the same container
         run: |
+          # Run container in interactive mode
           docker run --rm \
-            -e BASE_URL=http://host.docker.internal:8010 \
-            mobypark:tests
+            -e BASE_URL=http://127.0.0.1:8001 \
+            mobypark:tests \
+            sh -c "
+              # Start the API in the background
+              python -u server.py &
 
-      - name: Stop API container
-        if: always()
-        run: |
-          docker stop mobypark-api && docker rm mobypark-api
+              # Wait a few seconds for it to start
+              sleep 5
+
+              # Run pytest
+              pytest tests
+            "
