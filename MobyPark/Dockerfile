@@ -24,4 +24,4 @@ CMD cron && python -u server.py
 
 # Auto test
 FROM Base AS test
-CMD ["pytest", "tests"]
+CMD ["sh", "-c", "python server.py & pytest tests"]
