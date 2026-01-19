@@ -2,7 +2,7 @@ FROM python:3.11-slim as Base
 
 # Install cron and netcat
 RUN apt-get update && apt-get install -y cron
-RUN apt-get update && apt-get install -y netcat
+RUN apt-get update && apt-get install -y netcat-openbsd
 
 
 WORKDIR /app
