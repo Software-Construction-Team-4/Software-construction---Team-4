@@ -164,8 +164,9 @@ def create_missed_parking_sessions_for_date(target_date: date):
         conn.close()
 
 
-def pending_to_expired(get_db_connection):
-    cursor = get_db_connection.cursor(dictionary=True)
+def pending_to_expired():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
     try:
         cursor.execute("""
@@ -183,10 +184,11 @@ def pending_to_expired(get_db_connection):
                 WHERE status = 'pending'
                 AND end_time < NOW()
             """)
-            get_db_connection.commit()
+            conn.commit()
 
         return expired_reservations
 
     finally:
         cursor.close()
-        get_db_connection.close()
+        conn.close()
+
