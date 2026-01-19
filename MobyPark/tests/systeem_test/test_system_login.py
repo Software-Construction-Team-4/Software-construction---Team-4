@@ -21,17 +21,21 @@ random_user = {
     "birth_year": 2000
 }
 
-register_response = requests.post(f"{BASE_URL}/register", json=random_user)
 
-if register_response.status_code != 201:
-    pytest.fail("User registration failed")
+@pytest.fixture
+def registered_user():
+    register_response = requests.post(f"{BASE_URL}/register", json=random_user)
+    if register_response.status_code != 201:
+        pytest.fail("User registration failed")
+    
+    return random_user
 
-def test_login_success():
+def test_login_success(registered_user):
     response = requests.post(
         f"{BASE_URL}/login",
         json={
-            "username": random_user["username"],
-            "password": random_user["password"]
+            "username": registered_user["username"],
+            "password": registered_user["password"]
         },
         timeout=5
     )
@@ -43,10 +47,10 @@ def test_login_success():
     assert "session_token" in data
     assert "user_id" in data
 
-def test_login_wrong_password():
+def test_login_wrong_password(registered_user):
     response = requests.post(
         f"{BASE_URL}/login",
-        json={"username": random_user["username"], "password": "wrong"},
+        json={"username": registered_user["username"], "password": "wrong"},
         timeout=5
     )
 
