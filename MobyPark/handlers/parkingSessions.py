@@ -4,7 +4,7 @@ from session_manager import get_session
 from LogicLayer.reservationsLogic import get_reservation_by_user_id, update_reservation_logic
 from DataAccesLayer.vehicle_access import VehicleAccess
 
-
+#asdasd
 def send_json(self, status_code, data):
     self.send_response(status_code)
     self.send_header("Content-Type", "application/json")
