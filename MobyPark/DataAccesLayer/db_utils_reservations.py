@@ -117,7 +117,7 @@ def get_today_reservations_count_by_lot():
     finally:
         cursor.close()
         conn.close()
-
+  
 def create_missed_parking_sessions_for_date(target_date: date):
     start_dt = datetime.combine(target_date, datetime.min.time())
     end_dt = datetime.combine(target_date, datetime.max.time())
@@ -162,3 +162,31 @@ def create_missed_parking_sessions_for_date(target_date: date):
     finally:
         cursor.close()
         conn.close()
+
+
+def pending_to_expired(get_db_connection):
+    cursor = get_db_connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT *
+            FROM reservations
+            WHERE status = 'pending'
+            AND end_time < NOW()
+        """)
+        expired_reservations = cursor.fetchall()
+
+        if expired_reservations:
+            cursor.execute("""
+                UPDATE reservations
+                SET status = 'expired'
+                WHERE status = 'pending'
+                AND end_time < NOW()
+            """)
+            get_db_connection.commit()
+
+        return expired_reservations
+
+    finally:
+        cursor.close()
+        get_db_connection.close()

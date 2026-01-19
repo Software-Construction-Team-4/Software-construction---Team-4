@@ -1,37 +1,12 @@
 import mysql.connector
 from datetime import datetime, date
-from LogicLayer.reservationsLogic import process_missed_sessions
+from DataAccesLayer.db_utils_reservations import pending_to_expired
+from DataAccesLayer.db_utils_parkingSessions import create_parking_sessions_from_expired_reservations
 
-def get_db_connection():
-    return mysql.connector.connect(
-        host="145.24.237.71",
-        port=8001,
-        user="vscode",
-        password="StrongPassword123!",
-        database="mobypark"
-    )
-
-def pending_to_expired():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute("""
-            UPDATE reservations
-            SET status = 'expired'
-            WHERE status = 'pending'
-            AND end_time < NOW()
-        """)
-        conn.commit()
-        return cursor.rowcount
-
-    finally:
-        cursor.close()
-        conn.close()
 
 def run():
-    process_missed_sessions(date.today())
-    pending_to_expired()
+    expired_reservations = pending_to_expired()
+    create_parking_sessions_from_expired_reservations(expired_reservations)
 
     with open("/var/log/cron.log", "a") as f:
         f.write(f"[{datetime.now()}] 12-hour task ran\n")
