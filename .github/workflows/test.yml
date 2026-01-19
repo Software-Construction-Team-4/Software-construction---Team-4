@@ -19,7 +19,7 @@ jobs:
 
       - name: Start API container
         run: |
-          docker run -d --name mobypark-api -p 8001:8000 mobypark:api
+          docker run -d --name mobypark-api -p 8001:8001 mobypark:api
 
       - name: Wait for API to be ready
         run: |
