@@ -1,7 +1,9 @@
 FROM python:3.11-slim as Base
 
-# Install cron
+# Install cron and netcat
 RUN apt-get update && apt-get install -y cron
+RUN apt-get update && apt-get install -y netcat
+
 
 WORKDIR /app
 COPY . /app
@@ -9,6 +11,7 @@ COPY . /app
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt || true
 RUN pip install --no-cache-dir pytest requests mysql-connector-python
+
 
 # Create cron job (every 12 hours at 00:00 and 12:00)
 # RUN echo "* * * * * /usr/local/bin/python3 /app/dockerAutoFile.py >> /var/log/cron.log 2>&1" > /etc/cron.d/mobypark-cron
