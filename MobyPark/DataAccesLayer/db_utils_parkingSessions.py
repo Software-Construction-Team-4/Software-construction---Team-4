@@ -1,6 +1,6 @@
 import mysql.connector
 from DataModels.parkingSessionModel import ParkingSession
-
+from datetime import datetime
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -173,3 +173,38 @@ def delete_parking_session_by_id(connection, session_id):
         connection.commit()
     finally:
         connection.close()
+
+def create_parking_sessions_from_expired_reservations(reservations):
+    conn = get_db_connection()
+    try:
+        for reservation in reservations:
+            parking_lot_id = reservation["parking_lot_id"]
+            user_id = reservation["user_id"]
+            licenseplate = reservation["licenseplate"]
+            start_time = reservation["start_time"]
+            end_time = reservation["end_time"]
+
+            lot = get_parking_lot(conn, parking_lot_id)
+
+            cost = (lot.get("daytariff"))
+
+            session_number = get_next_session_number(conn, parking_lot_id)
+
+            session_data = {
+                "parking_lot_id": parking_lot_id,
+                "licenseplate": licenseplate,
+                "started": start_time,
+                "stopped": end_time,
+                "user_id": user_id,
+                "cost": cost,
+                "session_number": session_number
+            }
+
+            insert_parking_session(conn, session_data)
+
+            increase_active_sessions(conn, parking_lot_id)
+
+        conn.commit()
+
+    finally:
+        conn.close()
