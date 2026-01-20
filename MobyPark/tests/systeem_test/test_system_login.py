@@ -11,11 +11,12 @@ from DataAccesLayer.db_utils_users import delete as delete_user
 BASE_URL = "http://127.0.0.1:8000"
 
 
+import time
 random_user = {
-    "username": f"sezeven_{random.randint(1000,9999)}",
+    "username": f"sezeven_{random.randint(1000,9999)}_{int(time.time())}",
     "password": "Sez677!!",
     "name": "sezeven Hashemy",
-    "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
+    "email": f"sezeven{random.randint(1000,9999)}_{int(time.time())}@gmail.com",
     "phone": f"+310{random.randint(100000000, 999999999)}",
     "birth_year": 2000
 }
