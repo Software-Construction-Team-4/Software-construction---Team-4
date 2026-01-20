@@ -49,3 +49,6 @@ def load_parking_lot_by_id(lot_id):
     row["reserved"] = reserved_amount
     row["active_sessions"] = active_amount
     return create_parking_lot_from_row(row)
+
+def get_lot_with_id(id):
+    return load_parking_lot_row_by_id(id)

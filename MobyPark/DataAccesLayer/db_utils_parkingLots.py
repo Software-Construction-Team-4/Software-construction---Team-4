@@ -65,7 +65,7 @@ def save_parking_lot(data):
                 data.get("location"),
                 data.get("address"),
                 data.get("capacity"),
-                data.get("reserved", 0),
+                0,
                 data.get("tariff", 0),
                 data.get("daytariff", 0),
                 data.get("latitude"),
