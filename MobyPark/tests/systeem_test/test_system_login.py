@@ -8,7 +8,6 @@ BASE_URL = "http://127.0.0.1:8000"
 
 @pytest.fixture
 def registered_user():
-    # generate a unique user every time
     unique_user = {
         "username": f"sezeven_{uuid.uuid4().hex[:8]}",
         "password": "Sez677!!",
