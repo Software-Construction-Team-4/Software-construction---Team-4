@@ -6,7 +6,7 @@ import random
 BASE_URL = "http://127.0.0.1:8000"
 
 random_user = {
-    "username": f"sezeven_{random.randint(1000,9999)}",
+    "username": f"sezevens_test_login_{random.randint(1000,9999)}",
     "password": "Sez677!!",
     "name": "sezeven Hashemy",
     "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
