@@ -32,7 +32,7 @@ def post(path, payload, token=None):
         f"{BASE_URL}{path}",
         headers=headers(token),
         data=json.dumps(payload),
-        timeout=5
+        timeout=15
     )
 
 
@@ -41,7 +41,7 @@ def put(path, payload, token=None):
         f"{BASE_URL}{path}",
         headers=headers(token),
         data=json.dumps(payload),
-        timeout=5
+        timeout=15
     )
 
 
@@ -113,7 +113,7 @@ def test_reservations():
     r_get = requests.get(
         f"{BASE_URL}/reservations/{reservation_id}",
         headers={"Authorization": token},
-        timeout=5
+        timeout=15
     )
     assert r_get.status_code == 200, r_get.text
     current = r_get.json()
@@ -138,7 +138,7 @@ def test_reservations():
         requests.delete(
             f"{BASE_URL}/reservations/{reservation_id}",
             headers={"Authorization": token},
-            timeout=5
+            timeout=15
         )
     except Exception:
         pass

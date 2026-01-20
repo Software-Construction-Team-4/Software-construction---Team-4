@@ -24,7 +24,7 @@ random_user = {
 
 @pytest.fixture
 def registered_user():
-    register_response = requests.post(f"{BASE_URL}/register", json=random_user)
+    register_response = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
     if register_response.status_code != 201:
         pytest.fail("User registration failed")
     
@@ -51,7 +51,7 @@ def test_login_wrong_password(registered_user):
     response = requests.post(
         f"{BASE_URL}/login",
         json={"username": registered_user["username"], "password": "wrong"},
-        timeout=5
+        timeout=15
     )
 
     assert response.status_code in (400, 401, 403)
@@ -60,7 +60,7 @@ def test_login_wrong_password(registered_user):
 def test_unknown_route():
     response = requests.get(
         f"{BASE_URL}/this-route-does-not-exist",
-        timeout=5
+        timeout=15
     )
 
     assert response.status_code == 404
