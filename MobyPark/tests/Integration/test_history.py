@@ -82,7 +82,7 @@ def test_user_get_history_other_user():
 
     user_data_two = create_user(DummyUserTwo)
 
-    response = requests.get(f"{BASE_URL}/history/{user_data_two.get("user_id")}", headers=auth)
+    response = requests.get(f"{BASE_URL}/history/{user_data_two.get('user_id')}", headers=auth)
 
     assert response.status_code == 401
 
@@ -116,7 +116,7 @@ def test_admin_get_history_other_user():
 
     user_data = create_user(DummyUser)
 
-    response = requests.get(f"{BASE_URL}/history/{user_data.get("user_id")}", headers=auth)
+    response = requests.get(f"{BASE_URL}/history/{user_data.get('user_id')}", headers=auth)
 
     assert response.status_code == 200
 
