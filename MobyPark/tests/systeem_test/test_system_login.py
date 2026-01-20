@@ -2,32 +2,21 @@ import time
 import requests
 import pytest
 import random
+import uuid
 
 BASE_URL = "http://127.0.0.1:8000"
 
 random_user = {
-    "username": f"sezevens_test_login_{random.randint(1000,9999)}",
+    "username": f"sezeven_{uuid.uuid4().hex[:8]}",
     "password": "Sez677!!",
     "name": "sezeven Hashemy",
-    "email": f"sezeven{random.randint(1000,9999)}@gmail.com",
+    "email": f"{uuid.uuid4().hex[:8]}@gmail.com",
     "phone": f"+310{random.randint(100000000, 999999999)}",
     "birth_year": 2000
 }
 
-def wait_for_server(url, timeout=30):
-    start = time.time()
-    while True:
-        try:
-            requests.get(url, timeout=5)
-            return
-        except requests.exceptions.RequestException:
-            if time.time() - start > timeout:
-                pytest.fail(f"Server not responding at {url}")
-            time.sleep(1)
-
 @pytest.fixture
 def registered_user():
-    wait_for_server(BASE_URL)
     for attempt in range(5):
         try:
             resp = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
