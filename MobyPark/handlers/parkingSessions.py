@@ -3,6 +3,7 @@ from LogicLayer.sessionLogic import start_parking_session, stop_parking_session,
 from session_manager import get_session
 from LogicLayer.reservationsLogic import get_reservation_by_user_id, update_reservation_logic
 from DataAccesLayer.vehicle_access import VehicleAccess
+from LogicLayer.lotsLogic import get_lot_with_id
 
 #asdasd
 def send_json(self, status_code, data):
@@ -68,6 +69,12 @@ def do_POST(self):
             return
 
         parking_lot_id = reservation["parking_lot_id"] if reservation else data.get("parking_lot_id")
+
+        parking_lot = get_lot_with_id(parking_lot_id)
+        
+        if parking_lot["capacity"] <= (parking_lot["active_sessions"] + parking_lot["reserved"]):
+            send_json(self, 201, {"message": "The parking lot has reached it's capacity"})
+            return
 
         result = start_parking_session(
             parking_lot_id,
