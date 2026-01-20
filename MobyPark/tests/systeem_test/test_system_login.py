@@ -17,15 +17,10 @@ def registered_user():
         "birth_year": 2000
     }
 
-    for attempt in range(5):
-        try:
-            resp = requests.post(f"{BASE_URL}/register", json=unique_user, timeout=15)
-            print(f"Attempt {attempt+1}: {resp.status_code} - {resp.text}")
-            if resp.status_code == 201:
-                return unique_user
-        except requests.exceptions.RequestException as e:
-            print(f"Attempt {attempt+1}: Exception - {e}")
-        time.sleep(2)
+
+    resp = requests.post(f"{BASE_URL}/register", json=unique_user, timeout=15)
+    if resp.status_code == 201:
+        return unique_user
 
     pytest.fail("User registration failed after 5 attempts")
 
