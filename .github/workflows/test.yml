@@ -17,15 +17,19 @@ jobs:
         run: |
           docker build -t mobypark:tests ./MobyPark
 
-      - name: Run tests
+      - name: Run all tests
         run: |
           docker run --rm \
             -e BASE_URL=http://127.0.0.1:8000 \
             mobypark:tests \
             sh -c "
               python -u server.py &
+              echo 'Waiting for server on 8000...'
+              # wait until server responds
               until curl -s http://127.0.0.1:8000 > /dev/null; do sleep 1; done
+              echo 'Server is ready, running tests...'
               pytest tests
             "
+
 
 
