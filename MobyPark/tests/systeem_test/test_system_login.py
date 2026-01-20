@@ -1,5 +1,4 @@
-
-
+import time
 import requests
 import uuid
 import pytest
@@ -24,11 +23,16 @@ random_user = {
 
 @pytest.fixture
 def registered_user():
-    register_response = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
-    if register_response.status_code != 201:
-        pytest.fail("User registration failed")
-    
-    return random_user
+    # probeer 5x
+    for attempt in range(5):
+        try:
+            register_response = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
+            if register_response.status_code == 201:
+                return random_user
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(2)  #wacht 2 seconden
+    pytest.fail("User registration failed after 5 attempts")
 
 def test_login_success(registered_user):
     response = requests.post(
