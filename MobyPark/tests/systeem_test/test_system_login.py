@@ -1,15 +1,9 @@
 import time
 import requests
-import uuid
 import pytest
-import requests
 import random
 
-from DataAccesLayer.vehicle_access import VehicleAccess
-from DataAccesLayer.db_utils_users import delete as delete_user
-
 BASE_URL = "http://127.0.0.1:8000"
-
 
 random_user = {
     "username": f"sezeven_{random.randint(1000,9999)}",
@@ -20,19 +14,30 @@ random_user = {
     "birth_year": 2000
 }
 
+def wait_for_server(url, timeout=30):
+    start = time.time()
+    while True:
+        try:
+            requests.get(url, timeout=5)
+            return
+        except requests.exceptions.RequestException:
+            if time.time() - start > timeout:
+                pytest.fail(f"Server not responding at {url}")
+            time.sleep(1)
 
 @pytest.fixture
 def registered_user():
-    # probeer 5x
+    wait_for_server(BASE_URL)
     for attempt in range(5):
         try:
-            register_response = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
-            if register_response.status_code == 201:
+            resp = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
+            if resp.status_code == 201:
                 return random_user
         except requests.exceptions.RequestException:
             pass
-        time.sleep(2)  #wacht 2 seconden
+        time.sleep(2)
     pytest.fail("User registration failed after 5 attempts")
+
 
 def test_login_success(registered_user):
     response = requests.post(
