@@ -5,14 +5,13 @@ import pytest
 import requests
 
 from DataAccesLayer.vehicle_access import VehicleAccess
-from DataAccesLayer.db_utils_users import delete as delete_user  # delete user by id
+from DataAccesLayer.db_utils_users import delete as delete_user 
 
 import os
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def make_random_user(prefix: str):
-    """Create a random user dict to avoid collisions in the DB."""
     suffix = random.randint(1000, 9999)
     return {
         "username": f"{prefix}{suffix}",
@@ -25,17 +24,14 @@ def make_random_user(prefix: str):
 
 
 def get_session_data(user_data):
-    """Login and return the full JSON body, failing loudly on error."""
     response = requests.post(f"{BASE_URL}/login", json=user_data)
 
     if response.status_code != 200:
         print("LOGIN FAILED", response.status_code, response.text)
         pytest.fail("Login failed")
 
-    return response.json()  # contains session_token and user_id
+    return response.json()
 
-
-# --- Create one random user up-front, like in test_vehicles.py ---
 
 random_user = make_random_user("veh_put_one_")
 
@@ -61,7 +57,6 @@ def user_with_vehicle_and_cleanup():
         "year": "2022",
     }
 
-    # Create initial vehicle for the user
     response = requests.post(
         f"{BASE_URL}/vehicles",
         json=ValidVehicle,
@@ -77,7 +72,6 @@ def user_with_vehicle_and_cleanup():
         "vehicle_id": vehicle_id,
     }
 
-    # Cleanup vehicles + user
     try:
         vehicles = VehicleAccess.get_all_user_vehicles(user_id)
         for v in vehicles:
@@ -107,7 +101,6 @@ def test_put_vehicles_endpoint(user_with_vehicle_and_cleanup):
         "year": "2023",
     }
 
-    # PUT with missing required field -> 400
     response = requests.put(
         f"{BASE_URL}/vehicles/{vehicle_id}",
         json=IncompleteUpdate,
@@ -118,7 +111,6 @@ def test_put_vehicles_endpoint(user_with_vehicle_and_cleanup):
     assert data["error"] == "Required field missing"
     assert data["field"] == "color"
 
-    # PUT with full update -> 200
     response = requests.put(
         f"{BASE_URL}/vehicles/{vehicle_id}",
         json=UpdatedVehicle,

@@ -1,5 +1,3 @@
-# test_get_vehicles.py
-import os
 
 import random
 import pytest
@@ -8,11 +6,11 @@ import requests
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user
 
+import os
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 def make_random_user(prefix: str):
-    """Create a random user dict to avoid collisions in the DB."""
     suffix = random.randint(1000, 9999)
     return {
         "username": f"{prefix}{suffix}",
@@ -25,7 +23,6 @@ def make_random_user(prefix: str):
 
 
 def get_session_data(user_data):
-    """Login and return the full JSON body, failing loudly on error."""
     response = requests.post(f"{BASE_URL}/login", json=user_data)
 
     if response.status_code != 200:
