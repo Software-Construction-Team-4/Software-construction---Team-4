@@ -27,7 +27,7 @@ def calculate_price(parkinglot, data) -> tuple[float, float, int]:
 
     diff: timedelta = stop_date - start_date
 
-    hours: int = math.ceil(diff.total_seconds() / 3600)
+    hours: float = diff.total_seconds() / 3600
     days: int = diff.days
 
     hour_tariff: float = float(parkinglot.get("tariff", 5.00))
