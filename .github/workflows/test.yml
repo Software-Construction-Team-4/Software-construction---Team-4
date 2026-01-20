@@ -33,12 +33,12 @@ jobs:
       - name: Run Systeem tests
         run: |
           docker run --rm \
-            -e BASE_URL=http://127.0.0.1:8001 \
+            -e BASE_URL=http://127.0.0.1:8000 \
             mobypark:tests \
             sh -c "
-              python -u server.py --port 8001 &
-              echo 'Waiting for server on 8001...'
-              until curl -s http://127.0.0.1:8001 > /dev/null; do sleep 1; done
+              python -u server.py --port 8000 &
+              echo 'Waiting for server on 8000...'
+              until curl -s http://127.0.0.1:8000 > /dev/null; do sleep 1; done
               pytest tests/systeem_test
             "
 

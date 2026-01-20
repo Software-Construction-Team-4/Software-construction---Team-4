@@ -11,7 +11,7 @@ from DataModels.vehicle_model import VehicleModel
 from DataAccesLayer.db_utils_users import delete
 
 import os
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8001")
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 TEST_PARKING_LOT_ID = 1
 

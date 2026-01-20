@@ -1,11 +1,7 @@
-FROM python:3.11-slim as Base
+FROM python:3.11-slim
 
 # Install system tools
-RUN apt-get update && apt-get install -y \
-    cron \
-    netcat-openbsd \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y cron curl netcat-openbsd
 
 WORKDIR /app
 COPY . /app
@@ -23,6 +19,3 @@ RUN touch /var/log/cron.log
 
 # Runtime command
 CMD cron && python -u server.py
-
-# Test image
-FROM Base AS test
