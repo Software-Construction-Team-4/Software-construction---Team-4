@@ -6,26 +6,28 @@ import uuid
 
 BASE_URL = "http://127.0.0.1:8000"
 
-random_user = {
-    "username": f"sezeven_{uuid.uuid4().hex[:8]}",
-    "password": "Sez677!!",
-    "name": "sezeven Hashemy",
-    "email": f"{uuid.uuid4().hex[:8]}@gmail.com",
-    "phone": f"+310{random.randint(100000000, 999999999)}",
-    "birth_year": 2000
-}
-
 @pytest.fixture
 def registered_user():
+    # generate a unique user every time
+    unique_user = {
+        "username": f"sezeven_{uuid.uuid4().hex[:8]}",
+        "password": "Sez677!!",
+        "name": "sezeven Hashemy",
+        "email": f"{uuid.uuid4().hex[:8]}@gmail.com",
+        "phone": f"+310{random.randint(100000000, 999999999)}",
+        "birth_year": 2000
+    }
+
     for attempt in range(5):
         try:
-            resp = requests.post(f"{BASE_URL}/register", json=random_user, timeout=15)
+            resp = requests.post(f"{BASE_URL}/register", json=unique_user, timeout=15)
             print(f"Attempt {attempt+1}: {resp.status_code} - {resp.text}")
             if resp.status_code == 201:
-                return random_user
+                return unique_user
         except requests.exceptions.RequestException as e:
             print(f"Attempt {attempt+1}: Exception - {e}")
         time.sleep(2)
+
     pytest.fail("User registration failed after 5 attempts")
 
 
