@@ -15,30 +15,17 @@ jobs:
 
       - name: Build test image
         run: |
-          docker build -t mobypark:tests --target test ./MobyPark
+          docker build -t mobypark:tests ./MobyPark
 
-      - name: Run Integration tests
+      - name: Run tests
         run: |
           docker run --rm \
             -e BASE_URL=http://127.0.0.1:8000 \
             mobypark:tests \
             sh -c "
               python -u server.py &
-              echo 'Waiting for server on 8000...'
               until curl -s http://127.0.0.1:8000 > /dev/null; do sleep 1; done
-              pytest tests/Integration
+              pytest tests
             "
 
-
-      - name: Run Systeem tests
-        run: |
-          docker run --rm \
-            -e BASE_URL=http://127.0.0.1:8000 \
-            mobypark:tests \
-            sh -c "
-              python -u server.py --port 8000 &
-              echo 'Waiting for server on 8000...'
-              until curl -s http://127.0.0.1:8000 > /dev/null; do sleep 1; done
-              pytest tests/systeem_test
-            "
 
