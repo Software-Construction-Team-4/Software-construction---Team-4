@@ -5,6 +5,7 @@ from LogicLayer.reservationsLogic import get_reservation, create_reservation, up
 from DataModels.reservationsModel import Reservations
 from DataAccesLayer.db_utils_parkingLots import update_parking_lot, parking_lot_exists
 from DataAccesLayer.vehicle_access import VehicleAccess
+from LogicLayer.lotsLogic import get_lot_with_id
 
 def send_json(self, status_code, data):
     self.send_response(status_code)
@@ -52,6 +53,12 @@ def do_POST(self):
         vehicles = VehicleAccess.get_all_user_vehicles(session_user.get("user_id"))
         if not vehicles:
             return send_json(self, 404, {"error": "User is not registered to any vehicle"})
+        
+        parking_lot = get_lot_with_id(data["parking_lot_id"])
+
+        if parking_lot["capacity"] <= (parking_lot["active_sessions"] + parking_lot["reserved"]):
+            send_json(self, 201, {"message": "The parking lot has reached it's capacity"})
+            return
 
         new_res = Reservations(
             id=None,
