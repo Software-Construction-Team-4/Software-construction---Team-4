@@ -20,6 +20,9 @@ class Logger:
 
     @staticmethod
     def log(message: str, level: Level = Level.INFO, mention: bool = False, colour: int = 0x252525) -> None:
+        if Logger.DISCORD_WEBHOOK_URL is None:
+            return
+
         timestamp: int = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
         body = {
             "content": "@everyone" if mention else None,
@@ -41,7 +44,10 @@ class Logger:
             ]
         }
 
-        # requests.post(Logger.DISCORD_WEBHOOK_URL, json=body)
+        try:
+            requests.post(Logger.DISCORD_WEBHOOK_URL, json=body)
+        except:
+            print("Failed to log to Discord")
 
     @staticmethod
     def warn(message: str) -> None:
