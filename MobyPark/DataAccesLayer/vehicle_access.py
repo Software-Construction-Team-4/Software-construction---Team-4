@@ -76,11 +76,7 @@ class VehicleAccess:
         result = cursor.fetchall()
         return [VehicleModel(*vehicle) for vehicle in result]
 
-    @staticmethod
-    def get_all_user_vehicles(user_id: int) -> list['VehicleModel']:
-        cursor.execute(f"SELECT * FROM {VehicleAccess.TABLE} WHERE user_id = %s", (user_id,))
-        result = cursor.fetchall()
-        return [VehicleModel(*vehicle) for vehicle in result]
+
 
     @staticmethod
     def user_has_vehicle(user_id: int) -> bool:
