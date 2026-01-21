@@ -7,4 +7,5 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
     command: sh -c "cron && python -u server.py"
