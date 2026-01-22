@@ -50,7 +50,7 @@ headers = {"Authorization": token}
 @pytest.fixture
 def user_with_vehicle_and_cleanup():
     ValidVehicle = {
-        "license_plate": f"99-XYZ-{random.randint(1, 9)}",
+        "license_plate": f"{random.randint(1, 99)}-XYZ-{random.randint(1, 9)}",
         "make": "Tesla",
         "model": "Model 3",
         "color": "White",
@@ -95,7 +95,7 @@ def test_put_vehicles_endpoint(user_with_vehicle_and_cleanup):
 
 
     UpdatedVehicle = {
-    "license_plate": f"99-XPZ-{random.randint(1, 9)}",
+    "license_plate": f"{random.randint(1, 99)}-XPZ-{random.randint(1, 9)}",
     "make": "Tesla",
     "model": "Mdel 3",
     "color": "White",
