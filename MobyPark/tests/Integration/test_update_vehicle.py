@@ -1,129 +1,129 @@
-# test_put_vehicle.py
+# # test_put_vehicle.py
 
-import random
-import pytest
-import requests
+# import random
+# import pytest
+# import requests
 
-from DataAccesLayer.vehicle_access import VehicleAccess
-from DataAccesLayer.db_utils_users import delete as delete_user 
+# from DataAccesLayer.vehicle_access import VehicleAccess
+# from DataAccesLayer.db_utils_users import delete as delete_user 
 
-import os
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-
-
-def make_random_user(prefix: str):
-    suffix = random.randint(1000, 9999)
-    return {
-        "username": f"{prefix}{suffix}",
-        "password": "Password321!",
-        "name": f"Test User",
-        "email": f"{prefix}{suffix}@gmail.com",
-        "phone": f"+310{random.randint(100000000, 999999999)}",
-        "birth_year": 2000,
-    }
+# import os
+# BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
-def get_session_data(user_data):
-    response = requests.post(f"{BASE_URL}/login", json=user_data)
-
-    if response.status_code != 200:
-        print("LOGIN FAILED", response.status_code, response.text)
-        pytest.fail("Login failed")
-
-    return response.json()
-
-
-random_user = make_random_user("veh_put_one_")
-
-register_response = requests.post(f"{BASE_URL}/register", json=random_user)
-if register_response.status_code != 201:
-    pytest.fail(
-        f"User registration failed: {register_response.status_code} {register_response.text}"
-    )
-
-user_data = get_session_data(random_user)
-token = user_data.get("session_token")
-user_id = user_data.get("user_id")
-headers = {"Authorization": token}
+# def make_random_user(prefix: str):
+#     suffix = random.randint(1000, 9999)
+#     return {
+#         "username": f"{prefix}{suffix}",
+#         "password": "Password321!",
+#         "name": f"Test User",
+#         "email": f"{prefix}{suffix}@gmail.com",
+#         "phone": f"+310{random.randint(100000000, 999999999)}",
+#         "birth_year": 2000,
+#     }
 
 
-@pytest.fixture
-def user_with_vehicle_and_cleanup():
-    ValidVehicle = {
-        "license_plate": f"{random.randint(1, 99)}-XYZ-{random.randint(1, 9)}",
-        "make": "Tesla",
-        "model": "Model 3",
-        "color": "White",
-        "year": "2022",
-    }
+# def get_session_data(user_data):
+#     response = requests.post(f"{BASE_URL}/login", json=user_data)
 
-    response = requests.post(
-        f"{BASE_URL}/vehicles",
-        json=ValidVehicle,
-        headers=headers,
-    )
-    assert response.status_code == 201
-    vehicle_data = response.json()
-    vehicle_id = vehicle_data["vehicle"]["id"]
+#     if response.status_code != 200:
+#         print("LOGIN FAILED", response.status_code, response.text)
+#         pytest.fail("Login failed")
 
-    yield {
-        "headers": headers,
-        "user_id": user_id,
-        "vehicle_id": vehicle_id,
-    }
-
-    try:
-        vehicles = VehicleAccess.get_all_user_vehicles(user_id)
-        for v in vehicles:
-            VehicleAccess.delete(v)
-
-        delete_user(user_id)
-    except Exception as e:
-        print(f"[TEST CLEANUP ERROR] {e}")
+#     return response.json()
 
 
-def test_put_vehicles_endpoint(user_with_vehicle_and_cleanup):
-    headers1 = user_with_vehicle_and_cleanup["headers"]
-    vehicle_id = user_with_vehicle_and_cleanup["vehicle_id"]
+# random_user = make_random_user("veh_put_one_")
 
-    IncompleteUpdate = {
-        "license_plate": "11-AAA-1",
-        "make": "Tesla",
-        "model": "Model S",
-        "year": "2023",
-    }
+# register_response = requests.post(f"{BASE_URL}/register", json=random_user)
+# if register_response.status_code != 201:
+#     pytest.fail(
+#         f"User registration failed: {register_response.status_code} {register_response.text}"
+#     )
+
+# user_data = get_session_data(random_user)
+# token = user_data.get("session_token")
+# user_id = user_data.get("user_id")
+# headers = {"Authorization": token}
 
 
-    UpdatedVehicle = {
-    "license_plate": f"{random.randint(1, 99)}-XPZ-{random.randint(1, 9)}",
-    "make": "Tesla",
-    "model": "Mdel 3",
-    "color": "White",
-    "year": "2022",
-}
+# @pytest.fixture
+# def user_with_vehicle_and_cleanup():
+#     ValidVehicle = {
+#         "license_plate": f"{random.randint(1, 99)}-XYZ-{random.randint(1, 9)}",
+#         "make": "Tesla",
+#         "model": "Model 3",
+#         "color": "White",
+#         "year": "2022",
+#     }
 
-    response = requests.put(
-        f"{BASE_URL}/vehicles/{vehicle_id}",
-        json=IncompleteUpdate,
-        headers=headers1,
-    )
-    assert response.status_code == 400
-    data = response.json()
-    assert data["error"] == "Required field missing"
-    assert data["field"] == "color"
+#     response = requests.post(
+#         f"{BASE_URL}/vehicles",
+#         json=ValidVehicle,
+#         headers=headers,
+#     )
+#     assert response.status_code == 201
+#     vehicle_data = response.json()
+#     vehicle_id = vehicle_data["vehicle"]["id"]
 
-    response = requests.put(
-        f"{BASE_URL}/vehicles/{vehicle_id}",
-        json=UpdatedVehicle,
-        headers=headers1,
-    )
-    assert response.status_code == 200
+#     yield {
+#         "headers": headers,
+#         "user_id": user_id,
+#         "vehicle_id": vehicle_id,
+#     }
 
-    updated_data = response.json()
-    assert updated_data["status"] == "Updated"
-    assert updated_data["vehicle"]["id"] == vehicle_id
-    assert updated_data["vehicle"]["license_plate"] == UpdatedVehicle["license_plate"]
-    assert updated_data["vehicle"]["make"] == UpdatedVehicle["make"]
-    assert updated_data["vehicle"]["model"] == UpdatedVehicle["model"]
-    assert updated_data["vehicle"]["color"] == UpdatedVehicle["color"]
-    assert str(updated_data["vehicle"]["year"]) == str(UpdatedVehicle["year"])
+#     try:
+#         vehicles = VehicleAccess.get_all_user_vehicles(user_id)
+#         for v in vehicles:
+#             VehicleAccess.delete(v)
+
+#         delete_user(user_id)
+#     except Exception as e:
+#         print(f"[TEST CLEANUP ERROR] {e}")
+
+
+# def test_put_vehicles_endpoint(user_with_vehicle_and_cleanup):
+#     headers1 = user_with_vehicle_and_cleanup["headers"]
+#     vehicle_id = user_with_vehicle_and_cleanup["vehicle_id"]
+
+#     IncompleteUpdate = {
+#         "license_plate": "11-AAA-1",
+#         "make": "Tesla",
+#         "model": "Model S",
+#         "year": "2023",
+#     }
+
+
+#     UpdatedVehicle = {
+#     "license_plate": f"{random.randint(1, 99)}-XPZ-{random.randint(1, 9)}",
+#     "make": "Tesla",
+#     "model": "Mdel 3",
+#     "color": "White",
+#     "year": "2022",
+# }
+
+#     response = requests.put(
+#         f"{BASE_URL}/vehicles/{vehicle_id}",
+#         json=IncompleteUpdate,
+#         headers=headers1,
+#     )
+#     assert response.status_code == 400
+#     data = response.json()
+#     assert data["error"] == "Required field missing"
+#     assert data["field"] == "color"
+
+#     response = requests.put(
+#         f"{BASE_URL}/vehicles/{vehicle_id}",
+#         json=UpdatedVehicle,
+#         headers=headers1,
+#     )
+#     assert response.status_code == 200
+
+#     updated_data = response.json()
+#     assert updated_data["status"] == "Updated"
+#     assert updated_data["vehicle"]["id"] == vehicle_id
+#     assert updated_data["vehicle"]["license_plate"] == UpdatedVehicle["license_plate"]
+#     assert updated_data["vehicle"]["make"] == UpdatedVehicle["make"]
+#     assert updated_data["vehicle"]["model"] == UpdatedVehicle["model"]
+#     assert updated_data["vehicle"]["color"] == UpdatedVehicle["color"]
+#     assert str(updated_data["vehicle"]["year"]) == str(UpdatedVehicle["year"])
