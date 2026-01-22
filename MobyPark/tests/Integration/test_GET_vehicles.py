@@ -3,6 +3,7 @@ import random
 import pytest
 import requests
 
+
 from DataAccesLayer.vehicle_access import VehicleAccess
 from DataAccesLayer.db_utils_users import delete as delete_user
 
@@ -20,7 +21,6 @@ def make_random_user(prefix: str):
         "phone": f"+310{random.randint(100000000, 999999999)}",
         "birth_year": 2000,
     }
-
 
 def get_session_data(user_data):
     response = requests.post(f"{BASE_URL}/login", json=user_data)
@@ -87,13 +87,12 @@ def test_get_vehicles_endpoint(two_users_with_cleanup):
     headers2 = two_users_with_cleanup["headers2"]
 
     ValidVehicle = {
-        "license_plate": "99-XYZ-1",
+        "license_plate": f"99-XYZ-{random.randint(1, 9)}",
         "make": "Tesla",
         "model": "Model 3",
         "color": "White",
         "year": "2022",
     }
-
     response = requests.post(
         f"{BASE_URL}/vehicles",
         json=ValidVehicle,
