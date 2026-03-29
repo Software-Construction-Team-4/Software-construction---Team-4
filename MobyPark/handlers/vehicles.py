@@ -300,3 +300,6 @@ def do_DELETE(self):
         self.end_headers()
         self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
         return
+    
+
+#test
